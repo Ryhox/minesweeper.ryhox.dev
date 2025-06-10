@@ -8,7 +8,8 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
-
+const cors = require('cors');
+app.use(cors());
 
 // gameSettings | https://www.youtube.com/watch?v=tJNBOT1lvaI
 

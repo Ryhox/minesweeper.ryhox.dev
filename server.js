@@ -18,7 +18,7 @@ const DIFFICULTY_SETTINGS = {
   intermediate: { rows: 16, cols: 16, mines: 40 },
   expert: { rows: 16, cols: 30, mines: 99 }
 };
-const LOBBY_TIMEOUT = 300000;
+const LOBBY_TIMEOUT = 30000;
 const PORT = 3000;
 const lobbies = {};
 

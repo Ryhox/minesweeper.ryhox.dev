@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solo Minesweeper</title>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="icon" type="image/png" href="assets/images/minesweeperlogo.png">
+
+ <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+    <div class="header-title">RYHOX.DEV</div>
+    <div class="header-subtitle">Solo MINESWEEPER</div>
+</header>
+    <div id="gameContainer">
+      <div id="header">
+        <div class="middle-container">
+          <div id="gameTimer">Time: 0s</div>
+          <div id="flagCounter">Flags left: 15</div>
+        </div>
+        <button id="restartButton">
+          <span class="restart-icon"><i class="fas fa-refresh"></i></span>New game</button>
+        </div>
+      <div id="minesweeperGrid"></div>
+    </div>
+  
+
+
+    <div id="intermediatePodiumModal" class="modal">
+  <div class="modal-content">
+    <h2>Wait for Other Players to Finish OR spectate</h2>
+        <button id="closeintermediatePodiumModal">Close</button>
+    <button id="spectatePlayers">Spectate</button>
+  </div>
+</div>
+
+
+
+
+<div id="winModal" class="modal">
+  <div class="modal-content">
+    <h2>You did it!</h2>
+       <p>Time taken: <span id="winTime">0</span> seconds</p>
+      <p>Best time: <span id="bestTime">N/A</span></p>
+        <button id="closeWinModal">Close</button>
+  </div>
+</div>
+  </div>
+  <footer>
+    <a href="https://ryhox.dev/privacy-policy" id="privacy-link">Privacy Policy</a>
+    <p>Copyright 2025 ryhox.dev</p>
+    <div class="contact-links">
+        <a href="mailto:contact@ryhox.dev" aria-label="Email"><i class="fas fa-envelope"></i></a>
+        <a href="https://github.com/ryhox" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+        <a href="https://discordapp.com/users/Ryhox" target="_blank" aria-label="Discord"><i class="fab fa-discord"></i></a>
+    </div>
+</footer>
+<button id="backButtonIndex" class="Btn-Container">
+  <span class="text">Back!</span>
+  <span class="icon-Container">
+    <svg
+      width="16"
+      height="19"
+      viewBox="0 0 16 19"
+      fill="nones"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+      <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+      <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+    </svg>
+  </span>
+</button>
+
+  <script src="/assets/js/solo.js"></script>
+</body>
+</html>

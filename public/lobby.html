@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lobby</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <script src="/assets/js/main.js" defer></script>
+<link rel="icon" type="image/png" href="/assets/images/minesweeperlogo.png">
+
+</head>
+<body>
+  <div class="container">
+    <header>
+    <div class="header-title">RYHOX.DEV</div>
+    <div class="header-subtitle">MINESWEEPER</div>
+    LOBBY: <span id="lobbyCodeDisplay"></span>
+
+</header>
+   <div class="content-box">
+      <h2>Connected Players</h2>
+      <ul id="playerList"></ul>
+    <div id="lobbyStatus" class="waiting-message"></div>
+    <button id="readyUp">Ready Up</button>
+
+  </div>
+  </div>
+
+<div id="intermediatePodiumModal" class="modal">
+  <div class="modal-content">
+    <h2>Wait for Other Players to Finish OR spectate</h2>
+        <button id="closeintermediatePodiumModal">Close</button>
+    <button id="spectatePlayers">Spectate</button>
+  </div>
+</div>
+
+<div id="gameOverModal" class="modal" style="display: none;">
+  <div class="modal-content" >
+    <h2>Results</h2>
+    <div id="gameOverMessage"></div>
+    <div class="modal-buttons">
+      <button id="rematchButton">Rematch</button>
+      <button id="mainMenuButton">Main Menu</button>
+    </div>
+  </div>
+</div>
+<div id="spectatePlayersModal" class="modal">
+  <div class="modal-content">
+    <h2>Spectate Players</h2>
+    <div id="spectatePlayersList"></div>
+    <button id="closeSpectateModal">Close</button>
+  </div>
+</div>
+<button id="backButton" class="Btn-Container">
+  <span class="text">Back!</span>
+  <span class="icon-Container">
+    <svg
+      width="16"
+      height="19"
+      viewBox="0 0 16 19"
+      fill="nones"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+      <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+      <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+    </svg>
+  </span>
+</button>  
+  <script src="/socket.io/socket.io.js"></script>
+</body>
+</html>

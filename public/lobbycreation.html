@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minesweeper Lobby</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link rel="icon" type="image/png" href="assets/images/minesweeperlogo.png">
+
+</head>
+<body>
+<div class="container">
+<header>
+    <div class="header-title">RYHOX.DEV</div>
+    <div class="header-subtitle">MINESWEEPER</div>
+</header>    
+  <div class="input-group">
+    <div class="input-section">
+      <h3>Enter Your Name</h3>
+      <input id="nameInput" placeholder="Your Name (max 16 chars)" maxlength="16" autofocus>
+      <div id="nameError" class="error-message"></div>
+    </div>
+    
+
+        <div class="input-section">
+      <h3>Lobby Creation</h3>
+      <button class="button" id="createLobby">Create Lobby</button>
+    </div>
+
+    
+    <div class="input-section">
+      <h3>Join a Lobby</h3>
+      <input id="lobbyCode" placeholder="Enter Lobby Code" maxlength="4">
+      <div id="codeError" class="error-message"></div>
+      <button class="button" id="joinLobby">Join Lobby</button>
+    </div>
+        <div class="input-section">
+      <h3>Lobby Browser</h3>
+      <button class="button"  id="browseLobbies">See Available Lobbies</button>
+
+    </div>
+  </div>
+</div>
+<div id="difficultyModal" class="modalD">
+  <div class="modal-content">
+    <h2>Select Difficulty</h2>
+    <select id="difficultySelect">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <h2>Number of Players</h2>
+    <input type="number" id="playerCount" min="2" max="4" value="2">
+    <button id="confirmCreate">Create Lobby</button>
+    <button id="exitmodalD">Cancel</button>
+  </div>
+</div>
+
+<div id="lobbyBrowserModal" class="modal">
+  <div class="modal-content">
+    <h2>Available Lobbies</h2>
+    <div id="noLobbiesMessage" style="display: none;">No lobbies available</div>
+    <div id="lobbyList"></div>
+    <button id="closeLobbyBrowser">Close</button>
+  </div>
+</div>
+<footer>
+    <a href="https://ryhox.dev/privacy-policy" id="privacy-link">Privacy Policy</a>
+    <p>Copyright 2025 ryhox.dev</p>
+    <div class="contact-links">
+        <a href="mailto:contact@ryhox.dev" aria-label="Email"><i class="fas fa-envelope"></i></a>
+        <a href="https://github.com/ryhox" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+        <a href="https://discordapp.com/users/Ryhox" target="_blank" aria-label="Discord"><i class="fab fa-discord"></i></a>
+    </div>
+</footer>
+<button id="backButtonIndex" class="Btn-Container">
+  <span class="text">Back!</span>
+  <span class="icon-Container">
+    <svg
+      width="16"
+      height="19"
+      viewBox="0 0 16 19"
+      fill="nones"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+      <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+      <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+      <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+      <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+    </svg>
+  </span>
+</button>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/assets/js/main.js"></script>
+</body>
+</html>

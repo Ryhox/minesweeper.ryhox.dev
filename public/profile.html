@@ -1,60 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solo Minesweeper</title>
- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="icon" type="image/png" href="assets/images/minesweeperlogo.png">
-
- <link rel="stylesheet" href="/assets/css/style.css">
+    <title>Minesweeper Modes</title>
+        <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="assets/images/minesweeperlogo.png">
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-auth.js"></script>
 </head>
 <body>
-  <div class="container">
     <header>
     <div class="header-title">RYHOX.DEV</div>
-    <div class="header-subtitle">Solo MINESWEEPER</div>
-        <a href="/profile.html">
+    <div class="header-subtitle">Profile</div>
+    <a href="/profile.html">
         <div class="user-icon">
         <i class="fas fa-user-circle"></i>
     </div>
     </a>
 </header>
-    <div id="gameContainer">
-      <div id="header">
-        <div class="middle-container">
-          <div id="gameTimer">Time: 0s</div>
-          <div id="flagCounter">Flags left: 15</div>
-        </div>
-        <button id="restartButton">
-          <span class="restart-icon"><i class="fas fa-refresh"></i></span>New game</button>
-        </div>
-      <div id="minesweeperGrid"></div>
+<div class="container">
+    <p id="status">Checking login status...</p>
+    <button id="loginbtn" style="display: none;"><a href="/login.html">LOGIN</a></button>
+    <div id="nameSection" style="display: none;">
+        Change Name: 
+      <input type="text" id="usernameInput" placeholder="Enter new username" />
+      <button id="saveNameBtn">Save Name</button>
     </div>
-  
 
-
-    <div id="intermediatePodiumModal" class="modal">
-  <div class="modal-content">
-    <h2>Wait for Other Players to Finish OR spectate</h2>
-        <button id="closeintermediatePodiumModal">Close</button>
-    <button id="spectatePlayers">Spectate</button>
+    <button id="logoutBtn" style="display: none;">Logout</button>
+    <br />
+    <button id="deleteBtn" style="display: none; background-color: #ff4d4d;">Delete Account</button>
   </div>
-</div>
-
-
-
-
-<div id="winModal" class="modal">
-  <div class="modal-content">
-    <h2>You did it!</h2>
-       <p>Time taken: <span id="winTime">0</span> seconds</p>
-      <p>Best time: <span id="bestTime">N/A</span></p>
-        <button id="closeWinModal">Close</button>
-  </div>
-</div>
-  </div>
-  <footer>
+    <footer>
     <a href="https://ryhox.dev/privacy-policy" id="privacy-link">Privacy Policy</a>
     <p>Copyright 2025 ryhox.dev</p>
     <div class="contact-links">
@@ -86,7 +64,10 @@
     </svg>
   </span>
 </button>
+<script src="/assets/js/profile.js"></script>
+    <script src="/assets/js/solo.js"></script>
 
-  <script src="/assets/js/solo.js"></script>
 </body>
 </html>
+
+

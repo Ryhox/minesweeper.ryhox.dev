@@ -21,8 +21,14 @@
 - added Solo Modal to see win
 
 # TODO
+    1. add backend
+        LB Multiplayer - Winstreaks, WinRate, Avg Time, Position on LB, games Played
+        LB Solo - fastest time, Avg Time, Position on LB, games Played, Leader Board
 
-    1. BUGFIXES
-    2. add backend
-        - LB Multiplayer - Winstreaks, WinRate, Avg Time, Position on LB, games Played
-        - LB Solo - fastest time, Avg Time, Position on LB, games Played
+    2. Save Login in the Cookies
+
+    3. Do that you can only play multiplayer when youre logged in and save progress    when youre logged in
+
+    3. On the Leaderboard everyone needs to be registered
+    
+    4. BUGFIXES

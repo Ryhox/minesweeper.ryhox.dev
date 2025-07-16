@@ -220,5 +220,7 @@ function updateTimer() {
   document.getElementById('backButtonIndex').onclick = () => {
     window.location.href = '/';
   };
-  
+    document.getElementById('restartButton').onclick = function() {
+    initGame();
+  };
     initGame();

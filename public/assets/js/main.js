@@ -106,6 +106,7 @@ if (errorParam) {
       codeError.textContent = `Lobby is full`;
     } else if (errorParam === 'name_taken') {
       codeError.textContent = `Name is already taken in this lobby`;
+
     }
     window.history.replaceState({}, document.title, window.location.pathname);
   }
@@ -218,6 +219,7 @@ if (window.location.pathname === '/lobbycreation.html') {
       const name = nameInput.value.trim();
       if (!validateName(name)) {
         nameError.textContent = "Name must be 1-16 characters";
+              document.getElementById('difficultyModal').classList.remove('visible');
         return;
       }
       localStorage.setItem("playerName", name);

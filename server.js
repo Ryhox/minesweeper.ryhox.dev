@@ -31,8 +31,6 @@ const playerSessions = {};
 const lobbyTimeouts = {};
 
 
-
-
 function generateLobbyCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = '';
@@ -626,14 +624,17 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
         lobby.host = lobby.users[0];
       }
       
-      if (lobby.users.length === 0) {
-        if (lobbyTimeouts[lobby.code]) {
-          clearTimeout(lobbyTimeouts[lobby.code]);
-        }
-        lobbyTimeouts[lobby.code] = setTimeout(() => {
-          delete lobbies[lobby.code];
-          delete lobbyTimeouts[lobby.code];
-        }, LOBBY_CLEAR_TIME);
+if (lobby.users.length === 0 && lobby.status !== 'playing') {
+  if (lobbyTimeouts[lobby.code]) {
+    clearTimeout(lobbyTimeouts[lobby.code]);
+  }
+  lobbyTimeouts[lobby.code] = setTimeout(() => {
+    if (lobby.users.length === 0 && lobby.status !== 'playing') {
+      delete lobbies[lobby.code];
+      delete lobbyTimeouts[lobby.code];
+      console.log(`Lobby ${lobby.code} deleted due to inactivity.`);
+    }
+    }, LOBBY_CLEAR_TIME);
       } else {
         io.to(lobby.code).emit('updateUsers', lobby.users);
         io.to(lobby.code).emit('userLeft', socket.id);

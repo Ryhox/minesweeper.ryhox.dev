@@ -20,6 +20,10 @@
 - Bugfixes
 - added Solo Modal to see win
 
+# 16.07.2025
+- Finally started doing the backend a little bit
+- Started Login Forum
+
 # TODO
     1. add backend
         LB Multiplayer - Winstreaks, WinRate, Avg Time, Position on LB, games Played
@@ -30,5 +34,7 @@
     3. Do that you can only play multiplayer when youre logged in and save progress    when youre logged in
 
     3. On the Leaderboard everyone needs to be registered
+
+    4. Configurate reCHAPTCHA
     
-    4. BUGFIXES
+    5. BUGFIXES

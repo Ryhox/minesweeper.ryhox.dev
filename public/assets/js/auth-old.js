@@ -9,8 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const registerUsernameInput = document.getElementById('registerUsername');
   const form = document.querySelector('.form_main');
 
-  let oauthLoginInProgress = false;
-
   function showErrorAlert(msg) {
     const existing = document.querySelector('.error-notification');
     if (existing) existing.remove();
@@ -57,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
   `;
   document.head.appendChild(style);
 
+  // Auth state sync with localStorage
   auth.onAuthStateChanged(user => {
     if (user) {
       const savedName = localStorage.getItem('displayName');
@@ -69,19 +68,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  // Main form handler (login/register)
   if (form) {
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      if (oauthLoginInProgress) return;
-
+      // Detect login or register by available fields
       const isLoginPage = !!loginEmailInput && !!loginPasswordInput;
       const isRegisterPage = !!registerEmailInput && !!registerPasswordInput && !!registerUsernameInput;
 
       if (isLoginPage && !isRegisterPage) {
+        // Login
         const email = loginEmailInput.value.trim();
         const password = loginPasswordInput.value.trim();
-        if (!email || !password) return showErrorAlert("Please fill in all fields");
+        if (!email || !password) return showErrorAlert("Bitte fülle alle Felder aus.");
 
         try {
           const { user } = await auth.signInWithEmailAndPassword(email, password);
@@ -93,15 +93,17 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           const token = await auth.currentUser.getIdToken();
           setCookie('auth_token', token, 30);
+          //window.location.href = '/index.html';
         } catch {
-          showErrorAlert('E-Mail or Passwort is wrong');
+          showErrorAlert('E-Mail oder Passwort falsch');
         }
       } else if (isRegisterPage) {
+        // Register
         const email = registerEmailInput.value.trim();
         const password = registerPasswordInput.value.trim();
         const username = registerUsernameInput.value.trim();
 
-        if (!email || !password || !username) return showErrorAlert("Please fill in all fields");
+        if (!email || !password || !username) return showErrorAlert("Bitte fülle alle Felder aus.");
 
         try {
           const { user } = await auth.createUserWithEmailAndPassword(email, password);
@@ -110,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const token = await auth.currentUser.getIdToken();
           setCookie('auth_token', token, 30);
 
+          // Also send to backend
           const res = await fetch('/api/createUser', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -118,16 +121,18 @@ document.addEventListener('DOMContentLoaded', function () {
           const data = await res.json();
           alert(data.message);
 
+          //window.location.href = '/index.html';
         } catch (err) {
           const msg = err.message.includes('email')
-            ? 'E-Mail already exists'
-            : 'Password must be at least 6 characters';
+            ? 'E-Mail bereits registriert'
+            : 'Passwort zu schwach (min. 6 Zeichen)';
           showErrorAlert(msg);
         }
       }
     });
   }
 
+  // Standalone backend registration (for forms with id="registerForm")
   const registerForm = document.getElementById('registerForm');
   if (registerForm && registerForm !== form) {
     registerForm.addEventListener('submit', async (e) => {
@@ -137,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const email = document.getElementById('registerEmail').value.trim();
 
       if (!username || !email) {
-        alert('Please enter your username and email.');
+        alert('Bitte Benutzername und E-Mail angeben.');
         return;
       }
 
@@ -151,8 +156,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const data = await res.json();
         alert(data.message);
       } catch (err) {
-        console.error('Error creating user: ', err);
-        alert('There was a problem connecting to the server.');
+        console.error('Fehler beim Benutzer erstellen:', err);
+        alert('Es gab ein Problem bei der Verbindung zum Server.');
       }
     });
   }
@@ -167,8 +172,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelectorAll('.signin').forEach(btn => {
     btn.addEventListener('click', async () => {
-      oauthLoginInProgress = true;
-
       const brand = btn.querySelector('i')?.classList[1]?.split('-')[1];
       const provider = oauthButtons[brand];
       if (!provider) return;
@@ -179,27 +182,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (brand === 'google') {
           username = user.email?.split('@')[0];
-        } else if (brand === 'twitter' || brand === 'github' || brand === 'discord') {
-          username = user.displayName 
-                  || user.providerData[0]?.displayName 
-                  || user.email?.split('@')[0] 
-                  || `user${Math.floor(100000 + Math.random() * 900000)}`;
-        }
-
-        if (!username) {
-          username = `user${Math.floor(100000 + Math.random() * 900000)}`;
+        } else if (brand === 'twitter' || brand === 'github') {
+          username = user.displayName || user.providerData[0]?.displayName || user.email?.split('@')[0];
+        } else if (brand === 'discord') {
+          username = user.displayName || 'discord_user';
         }
 
         if (username) {
           localStorage.setItem('displayName', username);
           await user.updateProfile({ displayName: username });
 
-          const email = user.email || 'noemail';
-
+          // Create .json file in backend
           await fetch('/api/createUser', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email })
+            body: JSON.stringify({ username, email: user.email })
           });
         }
 
@@ -207,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setCookie('auth_token', token, 30);
         window.location.href = '/profile.html';
       } catch (err) {
-        showErrorAlert(`${brand} Login Failed`);
+        showErrorAlert(`${brand} Anmeldung fehlgeschlagen`);
       }
     });
   });

@@ -4,7 +4,7 @@
 - Rewrote most of the code structure
 - ALOT of bug fixes.
 
-# 16.05.2025
+# 16.06.2025
 - Bugfixes
 - i added the Podiums
 - also added more logic to win and lose
@@ -23,6 +23,17 @@
 # 16.07.2025
 - Finally started doing the backend a little bit
 - Started Login Forum
+
+# 17.07.2025
+- Fixed some Bugs
+- added cookies
+- multiplayer only for logged in users
+- profile dashboard
+- userdata safed!
+- designed login
+- WE DO NOT HAVE ANY 'alert("");' ANYMOOORRE!!!!!!
+
+
 
 # TODO
     1. add backend

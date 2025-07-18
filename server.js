@@ -3,6 +3,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const cors = require('cors');
+const fs = require('fs');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -816,6 +818,108 @@ function checkGameCompletion(lobby) {
         });
       }
     }
+  }
+});
+
+app.use(express.json());
+app.use(express.static('public')); 
+
+app.post('/api/createUser', (req, res) => {
+  console.log('POST /api/createUser', req.body);
+  const { username, email } = req.body;
+  if (!username || !email) {
+    return res.status(400).json({ message: 'Fehlende Daten' });
+  }
+
+  // Ensure userDATA directory exists
+  const userDir = path.join(__dirname, 'userDATA');
+  if (!fs.existsSync(userDir)) {
+    fs.mkdirSync(userDir, { recursive: true });
+  }
+
+  // Check if username already exists
+  const userFile = path.join(userDir, `${username}.json`);
+  if (fs.existsSync(userFile)) {
+    return res.status(400).json({ message: 'Benutzername existiert bereits' });
+  }
+
+  // Save each user as a separate file: userDATA/username.json
+  const userData = {
+    username,
+    email,
+    createdAt: new Date().toISOString(),
+    nameHistory: []
+  };
+
+  try {
+    fs.writeFileSync(userFile, JSON.stringify(userData, null, 2), 'utf8');
+    res.json({ message: 'Benutzer erfolgreich gespeichert' });
+  } catch (err) {
+    console.error('Error writing user file:', err);
+    res.status(500).json({ message: 'Fehler beim Schreiben der Datei' });
+  }
+});
+
+app.post('/api/checkUsername', (req, res) => {
+  const { username } = req.body;
+  const userDir = path.join(__dirname, 'userDATA');
+  const userFile = path.join(userDir, `${username}.json`);
+  res.json({ exists: fs.existsSync(userFile) });
+});
+app.post('/api/deleteUser', (req, res) => {
+  const { username } = req.body;
+  const userDir = path.join(__dirname, 'userDATA');
+  const userFile = path.join(userDir, `${username}.json`);
+  try {
+    if (fs.existsSync(userFile)) {
+      fs.unlinkSync(userFile);
+      res.json({ message: 'Benutzerdatei gelöscht' });
+    } else {
+      res.json({ message: 'Benutzerdatei nicht gefunden' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Fehler beim Löschen der Datei' });
+  }
+});
+app.post('/api/updateUser', (req, res) => {
+  const { oldUsername, newUsername, email } = req.body;
+  const userDir = path.join(__dirname, 'userDATA');
+  const oldFile = path.join(userDir, `${oldUsername}.json`);
+  const newFile = path.join(userDir, `${newUsername}.json`);
+
+  let createdAt = new Date().toISOString();
+  let nameHistory = [];
+
+  // If old file exists, preserve createdAt and history
+  if (fs.existsSync(oldFile)) {
+    try {
+      const oldData = JSON.parse(fs.readFileSync(oldFile, 'utf8'));
+      createdAt = oldData.createdAt || createdAt;
+      nameHistory = oldData.nameHistory || [];
+      nameHistory.push({ name: oldUsername, changedAt: new Date().toISOString() });
+      fs.unlinkSync(oldFile); // Delete old file
+    } catch (err) {
+      return res.status(500).json({ message: 'Fehler beim Lesen der alten Datei' });
+    }
+  }
+
+  // If new file exists and it's not just a rename, block it
+  if (fs.existsSync(newFile) && oldUsername !== newUsername) {
+    return res.status(400).json({ message: 'Benutzername existiert bereits' });
+  }
+
+  const userData = {
+    username: newUsername,
+    email,
+    createdAt,
+    nameHistory
+  };
+
+  try {
+    fs.writeFileSync(newFile, JSON.stringify(userData, null, 2), 'utf8');
+    res.json({ message: 'Benutzer erfolgreich aktualisiert' });
+  } catch (err) {
+    res.status(500).json({ message: 'Fehler beim Schreiben der Datei' });
   }
 });
 

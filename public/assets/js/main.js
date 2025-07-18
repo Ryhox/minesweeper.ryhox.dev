@@ -89,9 +89,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (backButtonIndex) {
     backButtonIndex.onclick = () => window.location.href = '/';
   }
-  document.getElementById('backButton').onclick = () => {
-    window.location.href = '/lobbycreation.html';
-  };
+  //document.getElementById('backButton').onclick = () => {
+  //  window.location.href = '/lobbycreation.html';
+  //};
+  const backButton = document.getElementById('backButton');
+  if (backButton) {
+    backButton.onclick = () => {
+      window.location.href = '/lobbycreation.html';
+    };
+  }
 });
 
 const validateName = (name) => name.trim().length > 0 && name.length <= 16;

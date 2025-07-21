@@ -6,7 +6,7 @@ const cors = require('cors');
 const fs = require('fs');
 const https = require('https');
 
-
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -1059,7 +1059,7 @@ app.post('/submit', async (req, res) => {
 });
 app.post('/recaptcha', async (req, res) => {
   const token = req.body.token;
-  const secret = '6LfoaoorAAAAAFiqiFWy7BVwq_Mo7CIcw98zyXbu';
+  const secret = process.env.RECAPTCHA_SECRET_KEY;
 
   if (!token) {
     return res.json({ success: false, message: 'Token fehlt' });

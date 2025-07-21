@@ -3,3 +3,5 @@ node_modules/
 public/assets/js/firebase-auth.js
 
 userDATA/*
+
+.env

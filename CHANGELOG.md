@@ -33,6 +33,12 @@
 - designed login
 - WE DO NOT HAVE ANY 'alert("");' ANYMOOORRE!!!!!!
 
+# 21.07.2025
+- Fixed some Bugs
+- added reCHAPTCHA
+- made stats.html
+- made solo.html a little bit better
+
 
 
 # TODO
@@ -40,12 +46,14 @@
         LB Multiplayer - Winstreaks, WinRate, Avg Time, Position on LB, games Played
         LB Solo - fastest time, Avg Time, Position on LB, games Played, Leader Board
 
-    2. Save Login in the Cookies
+    2. Fix that Google changes username all the time when you Log in, it needs to be always the same username that is registered
 
-    3. Do that you can only play multiplayer when youre logged in and save progress    when youre logged in
+    3. Save Login in the Cookies
 
-    3. On the Leaderboard everyone needs to be registered
+    4. Do that you can only play multiplayer when youre logged in and save stats/data when youre logged in
 
-    4. Configurate reCHAPTCHA
+    5. On the Leaderboard everyone needs to be registered
+
+    6. Configurate reCHAPTCHA
     
-    5. BUGFIXES
+    7. BUGFIXES

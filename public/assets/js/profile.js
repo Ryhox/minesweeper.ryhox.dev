@@ -10,13 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const sendResetEmailBtn = document.getElementById('sendResetEmailBtn');
     const usernameSpan = document.getElementById('username');
 
-    // Stats expand/collapse
-    const toggleSingleStatsBtn = document.getElementById('toggleSingleStatsBtn');
-    const singleStatsContent = document.getElementById('singleStatsContent');
-    const singleArrow = document.getElementById('singleArrow');
-    const toggleMultiStatsBtn = document.getElementById('toggleMultiStatsBtn');
-    const multiStatsContent = document.getElementById('multiStatsContent');
-    const multiArrow = document.getElementById('multiArrow');
+
 
     let emailVisible = false;
 
@@ -134,28 +128,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    function smoothToggle(contentElem, btnElem, arrowElem) {
-        const expanded = contentElem.style.display === 'block';
-        if (!expanded) {
-            contentElem.style.display = 'block';
-            contentElem.style.maxHeight = contentElem.scrollHeight + "px";
-            btnElem.classList.add('expanded');
-            btnElem.querySelector('span').textContent = 'Hide Stats';
-        } else {
-            contentElem.style.maxHeight = '0';
-            contentElem.style.display = 'none';
-            btnElem.classList.remove('expanded');
-            btnElem.querySelector('span').textContent = 'Show Stats';
-        }
-    }
-
-    toggleSingleStatsBtn.addEventListener('click', () => {
-        smoothToggle(singleStatsContent, toggleSingleStatsBtn, singleArrow);
-    });
-
-    toggleMultiStatsBtn.addEventListener('click', () => {
-        smoothToggle(multiStatsContent, toggleMultiStatsBtn, multiArrow);
-    });
 
     function showErrorAlert(msg) {
         const existing = document.querySelector('.error-notification');

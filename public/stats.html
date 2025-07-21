@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | ryhox.dev</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/stats-selection.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="/assets/js/firebase-auth.js"></script>
+    <style>/* Search styles */
+.search-wrapper {
+    position: relative;
+    margin-right: 20px;
+    z-index: 100;
+}
+
+.search-container {
+    transition: all 0.3s ease;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    padding: 8px 15px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.search-input {
+    background: transparent;
+    border: none;
+    color: white;
+    width: 180px;
+    padding: 5px 10px;
+    outline: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+.search-input:focus {
+    border: none;
+}
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.search-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 5px;
+    transition: all 0.2s ease;
+}
+
+.search-btn:hover {
+    color: #aaa;
+}
+
+.search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgb(0, 0, 0);
+    z-index: 99;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(3px);
+}
+
+.search-wrapper.expanded .search-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    width: 80%;
+    max-width: 600px;
+}
+
+.search-wrapper.expanded .search-bar {
+    width: 100%;
+    background: rgba(40, 40, 40, 0.95);
+    border-radius: 12px;
+    padding: 20px 25px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-wrapper.expanded .search-input {
+    width: 100%;
+    font-size: 20px;
+    padding: 8px 15px;
+}
+
+.search-wrapper.expanded .search-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.search-wrapper.expanded .search-btn.close-btn {
+    color: #aaa;
+    font-size: 24px;
+}
+
+.search-wrapper.expanded .search-btn.close-btn:hover {
+    color: white;
+}</style>
+</head>
+<body>
+    <header>
+        <div class="header-title">RYHOX.DEV</div>
+        <div class="header-subtitle">STATS</div>
+        <div class="user-menu-wrapper" id="userMenuWrapper">
+            <div class="user-icon" id="userIcon" style="display:none;">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="dropdown-header">
+                    <p class="dropdown-signed">Signed in as</p>
+                    <div class="dropdown-user">
+                        <div class="dropdown-avatar">
+                            <svg fill="currentColor" viewBox="0 0 20 20" class="avatar-svg"><path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path></svg>
+                        </div>
+                        <p class="dropdown-email" id="dropdownEmail"></p>
+                    </div>
+                </div>
+                <div class="dropdown-links">
+                    <a href="/profile.html" class="dropdown-link profile">
+                        <span>Profile</span>
+                    </a>
+                    <a href="/settings.html" class="dropdown-link settings">
+                        <span>Settings</span>
+                    </a>
+                    <a href="#" class="dropdown-link logout" id="dropdownLogout">
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+            <a href="/login.html" id="signInBtn" class="sign-in-btn" style="display:none;">Sign In / Sign Up</a>
+        </div>
+    </header>
+    <div class="containerprofile">
+<div class="search-wrapper">
+    <div class="search-container">
+        <div class="search-bar">
+            <input type="text" placeholder="Search users..." class="search-input">
+            <button class="search-btn"><i class="fas fa-search"></i></button>
+        </div>
+    </div>
+    <div class="search-overlay"></div>
+</div>
+        <h1><span id="username">USER</span></h1>
+        <div class="stats-selection">
+            <div class="mode-selection">
+                <button class="mode-btn active" data-mode="multiplayer">Multiplayer</button>
+                <button class="mode-btn" data-mode="singleplayer">Singleplayer</button>
+                <button class="mode-btn" data-mode="combined">Combined</button>
+            </div>
+            <div class="time-selection">
+                <select id="timeRange">
+                    <option value="all">All Time</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 3 Months</option>
+                    <option value="180">Last 6 Months</option>
+                    <option value="365">Last Year</option>
+                </select>
+            </div>
+        </div>
+        <div class="stats-container">
+            <!-- Multiplayer Stats -->
+            <div class="profile-section" id="multiplayer-stats">
+                <div class="sectionProfile-header">
+                    <h2 class="sectionProfile-title"><i class="fas fa-users"></i> Multiplayer Stats</h2>
+                </div>
+                <div class="sectionProfile-content">
+                    <div class="stats-grid">
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-trophy"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Current Win Streak</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-fire"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Best Win Streak</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-percentage"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Win Rate</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-stopwatch"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Average Time</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-medal"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Leaderboard Position</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-gamepad"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Games Played</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Wins</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-times-circle"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Losses</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Singleplayer Stats -->
+            <div class="profile-section" id="singleplayer-stats" style="display:none;">
+                <div class="sectionProfile-header">
+                    <h2 class="sectionProfile-title"><i class="fas fa-user"></i> Singleplayer Stats</h2>
+                </div>
+                <div class="sectionProfile-content">
+                    <div class="stats-grid">
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-stopwatch"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Fastest Time</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-clock"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Average Time</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-medal"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Leaderboard Position</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-gamepad"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Games Played</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-trophy"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Best Level Completed</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-bomb"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Mines Hit</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Completed Games</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-times-circle"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Failed Games</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combined Stats -->
+            <div class="profile-section" id="combined-stats" style="display:none;">
+                <div class="sectionProfile-header">
+                    <h2 class="sectionProfile-title"><i class="fas fa-globe"></i> Combined Stats</h2>
+                </div>
+                <div class="sectionProfile-content">
+                    <div class="stats-grid">
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-trophy"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Total Games Played</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-percentage"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Overall Win Rate</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-stopwatch"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Best Time (Any Mode)</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-clock"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Average Time</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-bomb"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Total Mines Hit</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-star"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Total Wins</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-icon"><i class="fas fa-calendar-alt"></i></div>
+                            <div class="info-content">
+                                <div class="info-label">Days Played</div>
+                                <div class="info-value">N/A</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="backButton" class="Btn-Container" onclick="window.history.back()">
+        <span class="text">Back!</span>
+        <span class="icon-Container">
+            <svg width="16" height="19" viewBox="0 0 16 19" fill="nones" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+                <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+                <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+                <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+                <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+                <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+                <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+                <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+                <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+                <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+            </svg>
+        </span>
+    </button>
+    
+    <footer>
+        <a href="https://ryhox.dev/privacy-policy" id="privacy-link">Privacy Policy</a>
+        <p>Copyright 2025 ryhox.dev</p>
+        <div class="contact-links">
+            <a href="mailto:contact@ryhox.dev" aria-label="Email"><i class="fas fa-envelope"></i></a>
+            <a href="https://github.com/ryhox" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+            <a href="https://discordapp.com/users/Ryhox" target="_blank" aria-label="Discord"><i class="fab fa-discord"></i></a>
+        </div>
+    </footer>
+    <script src="/assets/js/stats.js"></script>
+    <script src="assets/js/maincharacter.js"></script>
+</body>
+</html>

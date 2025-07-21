@@ -54,32 +54,53 @@
           <div id="flagCounter">Flags left: 15</div>
         </div>
         <button id="restartButton">
-          <span class="restart-icon"><i class="fas fa-refresh"></i></span>New game</button>
+          <span class="restart-icon"><i class="fa-solid fa-repeat"></i></span>New game</button>
+
+<div class="settings-buttons">
+  <button id="settingsButton"><i class="fa-solid fa-gear"></i> Settings</button>
+  <button id="resetSettingsButton"><i class="fas fa-refresh"></i></span> Reset settings</button>
+</div>
+
+
+
+
+
+
+
         </div>
+        
       <div id="minesweeperGrid"></div>
     </div>
   
 
+ <div id="settingsModal">
+  <div class="soloSettingsModalContent">
+    <h2>Settings</h2>
+    <label>Width (5-30):<br>
+      <input type="number" id="inputWidth" min="5" max="30">
+    </label><br><br>
+    <label>Height (5-30):<br>
+      <input type="number" id="inputHeight" min="5" max="30">
+    </label><br><br>
+    <label>Mines:<br>
+      <input type="number" id="inputMines" min="1">
+    </label><br><br>
+    <button id="settingsConfirmButton">Confirm</button>
 
-    <div id="intermediatePodiumModal" class="modal">
-  <div class="modal-content">
-    <h2>Wait for Other Players to Finish OR spectate</h2>
-        <button id="closeintermediatePodiumModal">Close</button>
-    <button id="spectatePlayers">Spectate</button>
+    <button id="closeSettingsModal">Close</button>
+  </div>
+</div>
+<div id="soloWinModal">
+  <div class="soloModalContent">
+    <h2 id="winMessage">🎉 YOU WON!</h2>
+    <p>Time: <span id="winTime">0</span> s</p>
+    <p>Bestr Time: <span id="bestTime">N/A</span> s</p>
+
+    <button id="closeWinModal">Close</button>
   </div>
 </div>
 
 
-
-
-<div id="winModal" class="modal">
-  <div class="modal-content">
-    <h2>You did it!</h2>
-       <p>Time taken: <span id="winTime">0</span> seconds</p>
-      <p>Best time: <span id="bestTime">N/A</span></p>
-        <button id="closeWinModal">Close</button>
-  </div>
-</div>
   </div>
   <footer>
     <a href="https://ryhox.dev/privacy-policy" id="privacy-link">Privacy Policy</a>

@@ -4,10 +4,14 @@ const socketIo = require('socket.io');
 const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
+const https = require('https');
+
 
 
 const app = express();
 const server = http.createServer(app);
+app.use(express.json());
+app.use(express.static('public')); 
 
 const io = socketIo(server, {
   cors: {
@@ -821,9 +825,94 @@ function checkGameCompletion(lobby) {
   }
 });
 
-app.use(express.json());
-app.use(express.static('public')); 
 
+
+const ROOT_DIR = path.resolve(__dirname);
+const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
+
+// Funktion zur Überprüfung/Erstellung des userDATA Ordners
+function ensureUserDataDir() {
+  try {
+    if (!fs.existsSync(USER_DATA_DIR)) {
+      fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+      console.log('userDATA directory created at:', USER_DATA_DIR);
+    }
+    return true;
+  } catch (err) {
+    console.error('Error creating userDATA directory:', err);
+    return false;
+  }
+}
+
+// API-Route für Benutzerregistrierung anpassen
+app.post('/api/createUser', async (req, res) => {
+  console.log('POST /api/createUser', req.body);
+  const { username, email } = req.body;
+  
+  // Prüfe zuerst ob der userDATA Ordner existiert/erstellt werden kann
+  if (!ensureUserDataDir()) {
+    return res.status(500).json({ 
+      success: false,
+      message: 'Server-Fehler: Kann Benutzerdaten nicht speichern' 
+    });
+  }
+
+  if (!username || !email) {
+    return res.status(400).json({ 
+      success: false,
+      message: 'Fehlende Daten' 
+    });
+  }
+
+  const userFile = path.join(USER_DATA_DIR, `${username}.json`);
+  
+  // Prüfe ob Benutzer bereits existiert
+  if (fs.existsSync(userFile)) {
+    return res.status(400).json({ 
+      success: false,
+      message: 'Benutzername existiert bereits' 
+    });
+  }
+
+  // Erstelle lokale Benutzerdaten
+  const userData = {
+    username,
+    email,
+    createdAt: new Date().toISOString(),
+    nameHistory: []
+  };
+
+  try {
+    // Speichere zuerst lokal
+    fs.writeFileSync(userFile, JSON.stringify(userData, null, 2), 'utf8');
+    
+    res.json({ 
+      success: true,
+      message: 'Benutzer erfolgreich gespeichert'
+    });
+  } catch (err) {
+    console.error('Error writing user file:', err);
+    // Wenn lokales Speichern fehlschlägt, sende Fehlermeldung
+    res.status(500).json({ 
+      success: false,
+      message: 'Fehler beim Speichern der Benutzerdaten' 
+    });
+  }
+});
+
+// Username-Check API anpassen
+app.post('/api/checkUsername', (req, res) => {
+  if (!ensureUserDataDir()) {
+    return res.status(500).json({ 
+      success: false,
+      message: 'Server-Fehler: Kann Benutzerdaten nicht überprüfen' 
+    });
+  }
+
+  const { username } = req.body;
+  const userFile = path.join(USER_DATA_DIR, `${username}.json`);
+  res.json({ exists: fs.existsSync(userFile) });
+});
 app.post('/api/createUser', (req, res) => {
   console.log('POST /api/createUser', req.body);
   const { username, email } = req.body;
@@ -922,6 +1011,96 @@ app.post('/api/updateUser', (req, res) => {
     res.status(500).json({ message: 'Fehler beim Schreiben der Datei' });
   }
 });
+
+
+
+app.post('/submit', async (req, res) => {
+  const token = req.body['h-captcha-response'];
+  const secret = '33f81284-b120-4654-b0a0-3d7c76061da6';
+
+  const options = {
+    hostname: 'hcaptcha.com',
+    path: '/siteverify',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  };
+
+  const postData = `secret=${secret}&response=${token}`;
+  options.headers['Content-Length'] = Buffer.byteLength(postData);
+
+  const request = https.request(options, (response) => {
+    let data = '';
+    response.on('data', (chunk) => { data += chunk; });
+    response.on('end', () => {
+      try {
+        const result = JSON.parse(data);
+        console.log('Captcha verification result:', result);
+        if (result.success) {
+          res.json({ success: true });
+        } else {
+          res.status(400).json({
+            success: false,
+            message: 'Captcha validation failed',
+            error: result['error-codes']
+          });
+        }
+      } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error during captcha verification' });
+      }
+    });
+  });
+  request.on('error', (err) => {
+    res.status(500).json({ success: false, message: 'Server error during captcha verification' });
+  });
+  request.write(postData);
+  request.end();
+});
+app.post('/recaptcha', async (req, res) => {
+  const token = req.body.token;
+  const secret = '6LfoaoorAAAAAFiqiFWy7BVwq_Mo7CIcw98zyXbu';
+
+  if (!token) {
+    return res.json({ success: false, message: 'Token fehlt' });
+  }
+
+  try {
+    const verifyRes = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify`,
+      null,
+      {
+        params: {
+          secret: secret,
+          response: token,
+        },
+      }
+    );
+
+    if (verifyRes.data.success) {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, message: verifyRes.data['error-codes'] });
+    }
+  } catch (err) {
+    res.json({ success: false, message: 'Fehler bei Anfrage an Google' });
+  }
+});
+async function verifyCaptchaAndRegister(token, registrationData) {
+  const res = await fetch('/recaptcha', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
+  });
+
+  const data = await res.json();
+
+  if (!data.success) {
+    showErrorAlert('Captcha verification failed: ' + (data.message || ''));
+    return;
+  }
+}
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => console.log(`Server running on http://localhost:${PORT}`));

@@ -57,14 +57,20 @@ document.addEventListener('DOMContentLoaded', function () {
   `;
   document.head.appendChild(style);
 
-  auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(async user => {
     if (user) {
-      const savedName = localStorage.getItem('displayName');
-      if (savedName && user.displayName !== savedName) {
-        user.updateProfile({ displayName: savedName })
-          .then(() => location.reload());
-      } else if (!savedName && user.displayName) {
-        localStorage.setItem('displayName', user.displayName);
+      try {
+        const response = await fetch('/api/getUser', {
+          headers: {
+            'Authorization': `Bearer ${await user.getIdToken()}`
+          }
+        });
+        const userData = await response.json();
+        if (userData.username && user.displayName !== userData.username) {
+          await user.updateProfile({ displayName: userData.username });
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
       }
     }
   });
@@ -72,7 +78,6 @@ document.addEventListener('DOMContentLoaded', function () {
   if (form) {
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
-
       if (oauthLoginInProgress) return;
 
       const isLoginPage = !!loginEmailInput && !!loginPasswordInput;
@@ -85,17 +90,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
           const { user } = await auth.signInWithEmailAndPassword(email, password);
-          const savedName = localStorage.getItem('displayName');
-          if (savedName && user.displayName !== savedName) {
-            await user.updateProfile({ displayName: savedName });
-          } else if (!savedName && user.displayName) {
-            localStorage.setItem('displayName', user.displayName);
+          const token = await user.getIdToken();
+
+          const response = await fetch('/api/getUser', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            if (userData.username && user.displayName !== userData.username) {
+              await user.updateProfile({ displayName: userData.username });
+            }
           }
-          const token = await auth.currentUser.getIdToken();
+
           setCookie('auth_token', token, 30);
+          window.location.href = '/profile.html';
         } catch {
           showErrorAlert('E-Mail or Passwort is wrong');
         }
+
       } else if (isRegisterPage) {
         const email = registerEmailInput.value.trim();
         const password = registerPasswordInput.value.trim();
@@ -103,61 +118,56 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!email || !password || !username) return showErrorAlert("Please fill in all fields");
 
-        try {
-          const { user } = await auth.createUserWithEmailAndPassword(email, password);
-          localStorage.setItem('displayName', username);
-          await user.updateProfile({ displayName: username });
-          const token = await auth.currentUser.getIdToken();
-          setCookie('auth_token', token, 30);
+        const captchaResponse = grecaptcha.getResponse();
+        if (!captchaResponse) {
+          showErrorAlert("Please verify that you are not a robot by completing the captcha.");
+          return;
+        }
 
-          const res = await fetch('/api/createUser', {
+        try {
+          const checkRes = await fetch('/api/checkUsername', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, exact: true })
+          });
+
+          if (!checkRes.ok) throw new Error('Server error during username check');
+          const checkData = await checkRes.json();
+
+          if (checkData.exists) {
+            showErrorAlert('This username is already taken');
+            return;
+          }
+
+          const createRes = await fetch('/api/createUser', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email })
           });
-          const data = await res.json();
-          alert(data.message);
+
+          if (!createRes.ok) throw new Error('Failed to create local user');
+
+          const { user } = await auth.createUserWithEmailAndPassword(email, password);
+          await user.updateProfile({ displayName: username });
+          const token = await user.getIdToken();
+          setCookie('auth_token', token, 30);
+
+          window.location.href = '/profile.html';
 
         } catch (err) {
-          const msg = err.message.includes('email')
-            ? 'E-Mail already exists'
-            : 'Password must be at least 6 characters';
-          showErrorAlert(msg);
+          console.error('Registration error:', err);
+          if (err.message.includes('email')) {
+            showErrorAlert('Email address is already in use');
+          } else if (err.message.includes('password')) {
+            showErrorAlert('Password must be at least 6 characters');
+          } else {
+            showErrorAlert('Registration failed. Please try again.');
+          }
         }
       }
     });
   }
 
-  const registerForm = document.getElementById('registerForm');
-  if (registerForm && registerForm !== form) {
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const username = document.getElementById('registerUsername').value.trim();
-      const email = document.getElementById('registerEmail').value.trim();
-
-      if (!username || !email) {
-        alert('Please enter your username and email.');
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/createUser', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, email })
-        });
-
-        const data = await res.json();
-        alert(data.message);
-      } catch (err) {
-        console.error('Error creating user: ', err);
-        alert('There was a problem connecting to the server.');
-      }
-    });
-  }
-
-  // OAuth login
   const oauthButtons = {
     'google': new firebase.auth.GoogleAuthProvider(),
     'twitter': new firebase.auth.TwitterAuthProvider(),
@@ -175,39 +185,52 @@ document.addEventListener('DOMContentLoaded', function () {
 
       try {
         const { user } = await auth.signInWithPopup(provider);
-        let username;
+        const token = await user.getIdToken();
 
-        if (brand === 'google') {
-          username = user.email?.split('@')[0];
-        } else if (brand === 'twitter' || brand === 'github' || brand === 'discord') {
-          username = user.displayName 
-                  || user.providerData[0]?.displayName 
-                  || user.email?.split('@')[0] 
-                  || `user${Math.floor(100000 + Math.random() * 900000)}`;
-        }
+        const response = await fetch('/api/getUser', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-        if (!username) {
-          username = `user${Math.floor(100000 + Math.random() * 900000)}`;
-        }
+        const userData = response.ok ? await response.json() : null;
 
-        if (username) {
-          localStorage.setItem('displayName', username);
-          await user.updateProfile({ displayName: username });
+        if (!userData || !userData.username) {
+          let username;
+          if (brand === 'google') {
+            username = user.email?.split('@')[0];
+          } else {
+            username = user.displayName 
+                    || user.providerData[0]?.displayName 
+                    || user.email?.split('@')[0] 
+                    || `user${Math.floor(100000 + Math.random() * 900000)}`;
+          }
 
           const email = user.email || 'noemail';
 
-          await fetch('/api/createUser', {
+          const createRes = await fetch('/api/createUser', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email })
           });
+
+          if (!createRes.ok) {
+            throw new Error('Failed to create user');
+          }
+
+          await user.updateProfile({ displayName: username });
+
+        } else if (user.displayName !== userData.username) {
+          await user.updateProfile({ displayName: userData.username });
         }
 
-        const token = await auth.currentUser.getIdToken();
         setCookie('auth_token', token, 30);
         window.location.href = '/profile.html';
+
       } catch (err) {
         showErrorAlert(`${brand} Login Failed`);
+        console.error('OAuth error:', err);
+        oauthLoginInProgress = false;
       }
     });
   });

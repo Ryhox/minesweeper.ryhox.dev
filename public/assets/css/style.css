@@ -40,17 +40,7 @@ h1 {
   animation: slideHeader 0.8s ease-out forwards;
 }
 
-h1::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 3px;
-  background: #00b4d8;
-  animation: lineExpand 0.6s ease-out 0.3s forwards;
-}
+
 
 h2 {
   font-size: 1.6rem;
@@ -106,8 +96,7 @@ h2 {
 
     input:focus {
       outline: none;
-      border-color: rgba(224, 255, 255, 0.582);
-      box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.1);
+
       transform: scale(1.02);
     }
 
@@ -703,12 +692,12 @@ footer a:hover {
   .modalD.visible {
     display: flex;
   }
-#exitmodalD, #closeLobbyBrowser, #closeintermediatePodiumModal, #closeSpectateModal, #closeWinModal {
+#exitmodalD, #closeLobbyBrowser, #closeintermediatePodiumModal, #closeSpectateModal, #closeWinModal, #closeSettingsModal {
     all: unset;
     position: absolute;
     font-family: Arial, Helvetica, sans-serif;
     top: 20px;
-    right: 20px;
+    left: 20px;
     cursor: pointer;
     font-size: 24px;
     font-weight: 900;
@@ -1320,7 +1309,6 @@ option:focus {
       min-height: 1rem;
     }
 
-    /* From Uiverse.io by vinodjangid07 */ 
 .form_main {
   width: 280px;
   display: flex;
@@ -1492,7 +1480,6 @@ option:focus {
       text-align: center;
       padding: 2rem;
       border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       
     }
     #saveNameBtn, #logoutBtn {
@@ -1509,6 +1496,399 @@ option:focus {
       padding: 8px;
     }
 
+  #soloWinModal, #settingsModal  {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none; /* sichtbar nur bei Gewinn/Verlust */
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+}
+
+.soloModalContent, .soloSettingsModalContent {
+  background-color: #1b1b1b;
+  padding: 30px 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  min-width: 280px;
+  max-width: 90%;
+}
+
+.soloModalContent h2 {
+  margin-top: 0;
+  font-size: 26px;
+}
+
+.soloModalContent p {
+  margin: 10px 0;
+  font-size: 18px;
+  color: #ffffff;
+}
+
+.soloModalContent button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  background-color: #2c97de;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.soloModalContent button:hover {
+  background-color: #1a80c1;
+}
+.settings-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.settings-buttons button, #settingsConfirmButton {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-family: inherit;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+#settingsConfirmButton {
+  background-color: lightgreen;
+  color: rgb(0, 0, 0);
+}
+#settingsButton {
+background-color: gray;
+}
+#resetSettingsButton {
+background-color: lightcoral;
+}
+
+.settings-buttons button:hover, #settingsConfirmButton:hover {
+  background-color: #4CAF50;
+  transform: scale(1.05);
+}
+
+.settings-buttons button:active {
+  transform: scale(0.98);
+}
+
+.containerprofile {
+    max-width: 1200px;
+    margin: 0 auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0; 
+    padding-top: 0;
+}
+
+.profile-header {
+    text-align: center;
+    animation: fadeInUp 0.6s ease-out;
+    width: 100%;
+    max-width: 800px;
+}
+.profile-header h1 {
+    font-size: 2.2rem;
+    color: lightskyblue;
+    margin-bottom: 0.5rem;
+}
+.profile-header p {
+    font-size: 1.1rem;
+    color: #aaa;
+    margin-bottom: 1rem;
+}
+
+.profile-section {
+    background: #1b1b1b;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+    width: 600px; 
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    animation: cardEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    border: 1px solid #2d2d2d;
+}
+
+.sectionProfile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+}
+
+.sectionProfile-title {
+    font-size: 1.5rem;
+    color: lightskyblue;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.info-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #2a2a2a;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    background: #303030;
+    transform: translateY(-3px);
+}
+
+.info-icon {
+    font-size: 1.5rem;
+    color: lightsalmon;
+    margin-right: 1rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 182, 193, 0.1);
+    border-radius: 50%;
+}
+
+.info-content {
+    flex: 1;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 0.2rem;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 500;
+}
+
+.action-btn, .action-btn2 {
+    padding: 0.5rem 1rem;
+    border: 1px solid #2d2d2d;
+    border-radius: 6px;
+    background: #333;
+    color: lightgreen;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'MineSweeper', monospace;
+}
+
+.action-btn2:hover {
+    background: #3a3a3a;
+}
+
+.action-btn:hover {
+    background: #3a3a3a;
+    transform: translateY(-2px);
+}
+
+.input-groupProfile {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.input-groupProfile input {
+    flex: 1;
+    padding: 0.8rem;
+    background: #333;
+    border: 1px solid #2d2d2d;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-size: 1rem;            
+}
+
+.stats-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: lightskyblue;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: color 0.2s;
+}
+
+.stats-toggle-btn i {
+    transition: transform 0.3s;
+}
+
+.stats-toggle-btn.expanded i {
+    transform: rotate(180deg);
+}
+
+.stats-content {
+    transition: max-height 0.4s cubic-bezier(.4,0,.2,1);
+    overflow: hidden;
+}
+
+.button-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    width: 100%;
+}
+
+.profile-btn {
+    padding: 1rem 2.5rem;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(.4,0,.2,1);
+    font-family: 'MineSweeper', monospace;
+    font-weight: 700;
+    width: 85%;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    border: none;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+}
+
+.logoutprofile-btn {
+    background: linear-gradient(90deg, #ff6b6b00 0%, #c6282800 100%);
+    color: #fff;
+    border: 1px solid #1976d2;
+}
+
+.logoutprofile-btn:hover {
+    background: linear-gradient(90deg, #1976d270 0%, #4fc2f765 100%);
+    transform: translateY(-2px) scale(1.04);
+}
+
+.delete-btn {
+    background: linear-gradient(90deg, #ff6b6b00 0%, #c6282800 100%);
+    color: #fff;
+    border: 1px solid #c62828;
+}
+
+.delete-btn:hover {
+    background: linear-gradient(90deg, #c6282857 0%, #ff6b6b59 100%);
+    transform: translateY(-2px) scale(1.04);
+}
+
+#status {
+    text-align: center;
+    padding: 1rem;
+    margin: 1rem 0;
+    background: #2a2a2a;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.stats-selection {
+    width: 80%;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 20px 0;
+    padding: 15px;
+    background-color: #1d1d1d;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #494949;
+
+}
+
+/* Mode  Buttons */
+.mode-selection {
+    display: flex;
+    gap: 10px;
+}
+
+.mode-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    font-weight: 500;
+    cursor: pointer;
+        border: 1px solid #686868;
+    transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+    background-color: #4a4a4a;
+}
+
+.mode-btn.active {
+    background-color: lightgreen;
+        border: 1px solid rgb(185, 230, 185);
+    color: rgb(0, 0, 0);
+}
+
+.time-selection select {
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #686868;
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.time-selection select:hover {
+    background-color: #4a4a4a;
+}
+
+.time-selection select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stats-selection {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .mode-selection {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .time-selection {
+        width: 100%;
+    }
+    
+    .time-selection select {
+        width: 100%;
+    }
+}
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

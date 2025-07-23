@@ -40,8 +40,8 @@
 - made solo.html a little bit better
 
 # 23.07.2025 
-- made the backend more reliable.
-- fixed the username bug with social logins should get saved now. 
+- made the backend more reliable by reworking it.
+- fixed, by reworking the backend, the username bug with social logins should get saved now. 
 - worked on the stats-page and a bit on the stats logic overall
 
 

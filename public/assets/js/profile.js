@@ -30,7 +30,6 @@ auth.onAuthStateChanged(user => {
         logoutBtn.style.display = 'inline-block';
         deleteBtn.style.display = 'inline-block';
 
-        // Show password reset button only if signed in with password provider
         const hasPasswordProvider = user.providerData.some(
             (provider) => provider.providerId === 'password'
         );
@@ -84,14 +83,12 @@ auth.onAuthStateChanged(user => {
     
     if (confirm('Permanently delete your account?')) {
       try {
-        // Delete from our database
         await fetch('/api/deleteUser', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ uid: user.uid })
         });
         
-        // Delete from Firebase
         await user.delete();
         window.location.href = '/login.html';
       } catch (err) {
@@ -108,7 +105,6 @@ saveNameBtn.addEventListener('click', async () => {
   if (!user) return showErrorAlert('User not authenticated');
 
   try {
-    // Check username availability
     const checkRes = await fetch('/api/checkUsername', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -120,7 +116,6 @@ saveNameBtn.addEventListener('click', async () => {
       return showErrorAlert('Username already taken');
     }
 
-    // Call your backend updateUser API first
     const updateRes = await fetch('/api/updateUser', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -137,7 +132,6 @@ saveNameBtn.addEventListener('click', async () => {
       return showErrorAlert(updateData.message || 'Error updating user');
     }
 
-    // Only if backend update succeeded, update Firebase profile & UI
     await user.updateProfile({ displayName: newName });
     usernameSpan.textContent = newName;
     showCustomAlert('Username updated successfully');

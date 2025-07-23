@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
   }
 
-  // Auto-assign displayName based on backend username
   auth.onAuthStateChanged(async user => {
     if (user) {
       try {
@@ -141,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const { user } = await auth.signInWithPopup(provider);
         const token = await user.getIdToken();
 
-        // Fallback name if no display name
         let currentName = user.displayName || user.email?.split('@')[0] || `user${Math.floor(100000 + Math.random() * 900000)}`;
 
         const userRes = await fetch('/api/getUser', {

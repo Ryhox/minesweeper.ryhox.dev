@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
       document.getElementById('landingPage').style.display = showStats ? 'none' : 'flex';
       document.getElementById('statsView').style.display = showStats ? 'block' : 'none';
-    // ====== Username from URL & Fetch Stats ======
     const pathSegments = window.location.pathname.split('/');
     let profileUsername = null;
 
@@ -36,32 +35,26 @@ async function fetchUserStats(username) {
 
 
     function populateStats(stats) {
-        // Multiplayer stats
         document.querySelectorAll('#multiplayer-stats .info-value').forEach((el, index) => {
             const keys = Object.keys(stats.multiplayer);
             el.textContent = stats.multiplayer[keys[index]];
         });
 
-        // Singleplayer stats
         document.querySelectorAll('#singleplayer-stats .info-value').forEach((el, index) => {
             const keys = Object.keys(stats.singleplayer);
             el.textContent = stats.singleplayer[keys[index]];
         });
 
-        // Combined stats
         document.querySelectorAll('#combined-stats .info-value').forEach((el, index) => {
             const keys = Object.keys(stats.combined);
             el.textContent = stats.combined[keys[index]];
         });
     }
 
-    // ====== Firebase and user elements ======
     const auth = firebase.auth();
     const statusText = document.getElementById('status');
     const usernameInput = document.getElementById('usernameInput');
-    // const usernameSpan = document.getElementById('username'); // handled above
 
-    // Stats view elements
     const modeButtons = document.querySelectorAll('.mode-btn');
     const timeRangeSelect = document.getElementById('timeRange');
     const statsSections = {
@@ -70,12 +63,10 @@ async function fetchUserStats(username) {
         'combined': document.getElementById('combined-stats')
     };
 
-    // Initialize stats view
     function initStatsView() {
         setActiveMode('multiplayer');
     }
 
-    // Set active mode with smooth transition
     function setActiveMode(mode) {
         Object.values(statsSections).forEach(section => {
             section.style.opacity = '0';
@@ -98,35 +89,28 @@ async function fetchUserStats(username) {
             }
         });
 
-        // Optional: if you want to update stats on mode change and you have profileUsername:
-        // if (profileUsername) fetchUserStats(profileUsername);
+
     }
 
-    // Mode selection
     modeButtons.forEach(button => {
         button.addEventListener('click', function () {
             setActiveMode(this.dataset.mode);
         });
     });
 
-    // Time range selection
     timeRangeSelect.addEventListener('change', function () {
         const activeMode = document.querySelector('.mode-btn.active').dataset.mode;
-        // If your backend supports time ranges, refetch stats here with filter
         if (profileUsername) {
             fetchUserStats(profileUsername);
         }
     });
 
-    // Placeholder updateStats function (can remove or repurpose)
     function updateStats(mode, timeRange) {
         console.log(`Updating ${mode} stats for time range: ${timeRange}`);
     }
 
-    // Initialize the view
     initStatsView();
 
-    // ====== Notification system ======
     function showErrorAlert(msg) {
         showAlert(msg, 'error-notification');
     }
@@ -150,7 +134,6 @@ async function fetchUserStats(username) {
         }, 3000);
     }
 
-    // ====== Premium Search System with autocomplete ======
     const searchWrapper = document.querySelector('.search-wrapper');
     const searchContainer = document.querySelector('.search-container');
     const searchBar = document.querySelector('.search-bar');
@@ -158,7 +141,6 @@ async function fetchUserStats(username) {
     const searchBtn = document.querySelector('.search-btn');
     const searchOverlay = document.querySelector('.search-overlay');
 
-    // Create autocomplete container dynamically
     const autocompleteList = document.createElement('ul');
     autocompleteList.className = 'autocomplete-list';
     searchContainer.appendChild(autocompleteList);
@@ -166,13 +148,12 @@ async function fetchUserStats(username) {
     let allUsernames = [];
     let selectedSuggestionIndex = -1;
 
-    // Fetch all usernames once on first expand or input
     async function fetchUsernames() {
-        if (allUsernames.length > 0) return; // already fetched
+        if (allUsernames.length > 0) return; 
         try {
             const res = await fetch('/api/getAllUsernames');
             if (!res.ok) throw new Error('Failed to fetch usernames');
-            allUsernames = await res.json(); // array of strings expected
+            allUsernames = await res.json(); 
         } catch (err) {
             console.error('Error fetching usernames for autocomplete:', err);
         }
@@ -182,7 +163,7 @@ async function fetchUserStats(username) {
         if (!query) return [];
         return allUsernames
             .filter(name => name.toLowerCase().startsWith(query.toLowerCase()))
-            .slice(0, 10); // max 10 suggestions
+            .slice(0, 10); 
     }
 
     function clearSuggestions() {
@@ -226,7 +207,6 @@ async function fetchUserStats(username) {
         });
     }
 
-    // Enhance toggleSearch to fetch usernames on expand
     const originalToggleSearch = toggleSearch;
     toggleSearch = async function () {
         originalToggleSearch();
@@ -237,7 +217,6 @@ async function fetchUserStats(username) {
         }
     };
 
-    // On input, filter suggestions and show
     searchInput.addEventListener('input', () => {
         const query = searchInput.value.trim();
         if (!query) {
@@ -248,7 +227,6 @@ async function fetchUserStats(username) {
         showSuggestions(suggestions);
     });
 
-    // Keyboard navigation in suggestions
     searchInput.addEventListener('keydown', (e) => {
         const items = autocompleteList.querySelectorAll('li');
         if (items.length === 0) return;
@@ -275,14 +253,12 @@ async function fetchUserStats(username) {
         }
     });
 
-    // Hide suggestions when clicking outside
     document.addEventListener('click', (e) => {
         if (!searchWrapper.contains(e.target)) {
             clearSuggestions();
         }
     });
 
-    // Search event listeners (your original ones)
     searchInput.addEventListener('click', toggleSearch);
     searchBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -304,7 +280,6 @@ async function fetchUserStats(username) {
 
     async function performSearch(query) {
         console.log('Searching for:', query);
-        // Check if username exists by hitting your backend:
         try {
             const res = await fetch('/api/checkUsername', {
                 method: 'POST',
@@ -315,10 +290,8 @@ async function fetchUserStats(username) {
             const data = await res.json();
 
             if (data.exists) {
-                // Redirect to stats page for that username
                 window.location.href = `/stats/${encodeURIComponent(query)}`;
             } else {
-                // Redirect to "name not found" page
                 window.location.href = '/namenotfound.html';
             }
         } catch (err) {
@@ -345,7 +318,6 @@ async function fetchUserStats(username) {
         }
     }
 
-    // ====== Dynamic styles ======
     const style = document.createElement('style');
     style.textContent = `
         /* Search system */

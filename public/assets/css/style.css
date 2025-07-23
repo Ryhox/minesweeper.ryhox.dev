@@ -803,7 +803,6 @@ option:focus {
     background: #174ea671;
     color: #e0e0e0;
 }
-/* Responsive adjustments */
 @media (max-width: 600px) {
   .sign-in-btn {
     padding: 0.6rem 1.2rem;
@@ -861,7 +860,7 @@ option:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 6px; /* Add space below avatar */}
+    margin-top: 6px;}
 .avatar-svg {
     width: 18px;
     height: 18px;
@@ -883,7 +882,6 @@ option:focus {
     align-items: center;
 }
 
-/* Make each link centered */
 .dropdown-link {
     display: flex;
     align-items: center;
@@ -1502,7 +1500,7 @@ option:focus {
   left: 0;
   width: 100%;
   height: 100%;
-  display: none; /* sichtbar nur bei Gewinn/Verlust */
+  display: none; 
   justify-content: center;
   align-items: center;
   background-color: rgba(0, 0, 0, 0.6);
@@ -1807,7 +1805,7 @@ background-color: lightcoral;
 
 .stats-selection {
     width: 80%;
-    margin: 0 auto 20px auto; /* <-- This centers horizontally */
+    margin: 0 auto 20px auto; 
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1819,7 +1817,6 @@ background-color: lightcoral;
 }
 
 
-/* Mode  Buttons */
 .mode-selection {
     display: flex;
     gap: 10px;
@@ -1868,7 +1865,6 @@ background-color: lightcoral;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
     .stats-selection {
         flex-direction: column;
@@ -1994,7 +1990,7 @@ background-color: lightcoral;
 
 .autocomplete-list {
   position: absolute;
-  top: 100%; /* below input */
+  top: 100%; 
   left: 0;
   right: 0;
   background: #1e1e1e;
@@ -2008,7 +2004,7 @@ background-color: lightcoral;
   padding: 0;
   color: white;
   font-size: 1rem;
-  display: none; /* hidden by default */
+  display: none;
 }
 
 .autocomplete-list li {
@@ -2022,7 +2018,6 @@ background-color: lightcoral;
   background: #333;
 }
 
-/* Extracted styles for landingPage container */
 #landingPage {
   display: flex;
   flex-direction: column;
@@ -2038,7 +2033,6 @@ background-color: lightcoral;
   max-width: 600px;
 }
 
-/* Cards container below the search bar */
 .landing-info-cards {
   display: flex;
   flex-wrap: wrap;
@@ -2047,7 +2041,6 @@ background-color: lightcoral;
   margin-top: 40px;
 }
 
-/* Individual info card style */
 .info-cardlanding {
   background: rgba(255, 255, 255, 0.05);
   padding: 20px;
@@ -2223,7 +2216,6 @@ background-color: lightcoral;
     font-size: 0.9rem;
   }}
 
-  /* Popup Overlay */
 .custom-login-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -2235,7 +2227,6 @@ background-color: lightcoral;
   z-index: 99999;
 }
 
-/* Popup Window */
 .custom-login-popup {
   background: #242424;
   color: #fff;

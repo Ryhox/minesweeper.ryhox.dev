@@ -122,7 +122,7 @@ function handleClick(event) {
     clearInterval(timerInterval);
     revealFullGrid();
     gameTime = Math.floor((Date.now() - startTime) / 1000);
-    showWinModal(gameTime, false); // 💥 Lost
+    showWinModal(gameTime, false); 
     return;
   }
 
@@ -193,7 +193,7 @@ function checkWin() {
     gameActive = false;
     clearInterval(timerInterval);
     gameTime = Math.floor((Date.now() - startTime) / 1000);
-    showWinModal(gameTime, true); // 🎉 Won
+    showWinModal(gameTime, true);
   }
 }
 
@@ -232,7 +232,6 @@ function updateTimer() {
 function openSettingsModal() {
   document.getElementById('settingsModal').style.display = 'flex';
 
-  // Pre-fill inputs with current settings
   document.getElementById('inputWidth').value = GRID_WIDTH;
   document.getElementById('inputHeight').value = GRID_HEIGHT;
   document.getElementById('inputMines').value = MINE_COUNT;
@@ -247,7 +246,6 @@ function applySettings() {
   const h = parseInt(document.getElementById('inputHeight').value);
   const m = parseInt(document.getElementById('inputMines').value);
 
-  // Basic validation
   if (
     isNaN(w) || isNaN(h) || isNaN(m) ||
     w < 5 || w > 30 ||

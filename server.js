@@ -833,7 +833,6 @@ function checkGameCompletion(lobby) {
 const ROOT_DIR = path.resolve(__dirname);
 const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
 
-// Ensure userDATA directory exists
 if (!fs.existsSync(USER_DATA_DIR)) {
   fs.mkdirSync(USER_DATA_DIR, { recursive: true });
 }
@@ -909,7 +908,6 @@ app.post('/api/createUser', (req, res) => {
   }
 });
 
-// Delete user by UID
 app.post('/api/deleteUser', (req, res) => {
   const { uid } = req.body;
   const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
@@ -924,7 +922,6 @@ app.post('/api/deleteUser', (req, res) => {
     res.status(500).json({ message: 'Error deleting file' });
   }
 });
-// Check if a username already exists
 app.post('/api/checkUsername', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ exists: false });
@@ -987,7 +984,6 @@ app.post('/api/updateUser', (req, res) => {
     res.status(500).json({ message: 'Error updating user' });
   }
 });
-// Get user by UID
 app.post('/api/getUser', (req, res) => {
   const { uid } = req.body;
   const userFile = path.join(USER_DATA_DIR, `${uid}.json`);

@@ -1015,7 +1015,7 @@ app.get('/api/getAllUsernames', (req, res) => {
 });
 app.post('/submit', async (req, res) => {
   const token = req.body['h-captcha-response'];
-  const secret = '33f81284-b120-4654-b0a0-3d7c76061da6';
+  const secret = process.env.RECAPTCHA_SECRET_KEY2;
 
   const options = {
     hostname: 'hcaptcha.com',

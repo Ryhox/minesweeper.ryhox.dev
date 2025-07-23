@@ -29,7 +29,7 @@
 - added cookies
 - multiplayer only for logged in users
 - profile dashboard
-- userdata safed!
+- userdata saved!
 - designed login
 - WE DO NOT HAVE ANY 'alert("");' ANYMOOORRE!!!!!!
 
@@ -39,21 +39,18 @@
 - made stats.html
 - made solo.html a little bit better
 
+# 23.07.2025 
+- made the backend more reliable.
+- fixed the username bug with social logins should get saved now. 
+- worked on the stats-page and a bit on the stats logic overall
+
 
 
 # TODO
-    1. add backend
+    1. finish backend
         LB Multiplayer - Winstreaks, WinRate, Avg Time, Position on LB, games Played
         LB Solo - fastest time, Avg Time, Position on LB, games Played, Leader Board
 
-    2. Fix that Google changes username all the time when you Log in, it needs to be always the same username that is registered
-
-    3. Save Login in the Cookies
-
-    4. Do that you can only play multiplayer when youre logged in and save stats/data when youre logged in
-
-    5. On the Leaderboard everyone needs to be registered
-
-    6. Configurate reCHAPTCHA
+    2. Save Login in the Cookies
     
-    7. BUGFIXES
+    3. BUGFIXES

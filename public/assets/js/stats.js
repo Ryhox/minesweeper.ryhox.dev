@@ -1,9 +1,65 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Firebase and user elements
+      const path = window.location.pathname.split('/');
+      const showStats = path.length >= 3 && path[1] === 'stats' && path[2];
+
+      document.getElementById('landingPage').style.display = showStats ? 'none' : 'flex';
+      document.getElementById('statsView').style.display = showStats ? 'block' : 'none';
+    // ====== Username from URL & Fetch Stats ======
+    const pathSegments = window.location.pathname.split('/');
+    let profileUsername = null;
+
+    if (pathSegments.length >= 3 && pathSegments[1] === 'stats') {
+        profileUsername = decodeURIComponent(pathSegments[2]);
+        const usernameSpan = document.getElementById('username');
+        if (usernameSpan) {
+            usernameSpan.textContent = profileUsername;
+        }
+        fetchUserStats(profileUsername);
+    }
+
+async function fetchUserStats(username) {
+    try {
+        const response = await fetch(`/api/getStats/${encodeURIComponent(username)}`);
+        if (!response.ok) {
+            window.location.href = '/namenotfound.html';
+            return;
+        }
+        
+        const stats = await response.json();
+        populateStats(stats);
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        showErrorAlert('User stats not found');
+        window.location.href = '/namenotfound.html'; 
+    }
+}
+
+
+    function populateStats(stats) {
+        // Multiplayer stats
+        document.querySelectorAll('#multiplayer-stats .info-value').forEach((el, index) => {
+            const keys = Object.keys(stats.multiplayer);
+            el.textContent = stats.multiplayer[keys[index]];
+        });
+
+        // Singleplayer stats
+        document.querySelectorAll('#singleplayer-stats .info-value').forEach((el, index) => {
+            const keys = Object.keys(stats.singleplayer);
+            el.textContent = stats.singleplayer[keys[index]];
+        });
+
+        // Combined stats
+        document.querySelectorAll('#combined-stats .info-value').forEach((el, index) => {
+            const keys = Object.keys(stats.combined);
+            el.textContent = stats.combined[keys[index]];
+        });
+    }
+
+    // ====== Firebase and user elements ======
     const auth = firebase.auth();
     const statusText = document.getElementById('status');
     const usernameInput = document.getElementById('usernameInput');
-    const usernameSpan = document.getElementById('username');
+    // const usernameSpan = document.getElementById('username'); // handled above
 
     // Stats view elements
     const modeButtons = document.querySelectorAll('.mode-btn');
@@ -27,46 +83,50 @@ document.addEventListener('DOMContentLoaded', function () {
                 section.style.display = 'none';
             }, 300);
         });
-        
+
         setTimeout(() => {
             statsSections[mode].style.display = 'block';
             setTimeout(() => {
                 statsSections[mode].style.opacity = '1';
             }, 10);
         }, 300);
-        
+
         modeButtons.forEach(button => {
             button.classList.remove('active');
             if (button.dataset.mode === mode) {
                 button.classList.add('active');
             }
         });
-        
-        updateStats(mode, timeRangeSelect.value);
+
+        // Optional: if you want to update stats on mode change and you have profileUsername:
+        // if (profileUsername) fetchUserStats(profileUsername);
     }
 
     // Mode selection
     modeButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             setActiveMode(this.dataset.mode);
         });
     });
 
     // Time range selection
-    timeRangeSelect.addEventListener('change', function() {
+    timeRangeSelect.addEventListener('change', function () {
         const activeMode = document.querySelector('.mode-btn.active').dataset.mode;
-        updateStats(activeMode, this.value);
+        // If your backend supports time ranges, refetch stats here with filter
+        if (profileUsername) {
+            fetchUserStats(profileUsername);
+        }
     });
 
-    // Stats update placeholder
+    // Placeholder updateStats function (can remove or repurpose)
     function updateStats(mode, timeRange) {
         console.log(`Updating ${mode} stats for time range: ${timeRange}`);
     }
 
-    // Initialize
+    // Initialize the view
     initStatsView();
 
-    // Notification system
+    // ====== Notification system ======
     function showErrorAlert(msg) {
         showAlert(msg, 'error-notification');
     }
@@ -78,19 +138,19 @@ document.addEventListener('DOMContentLoaded', function () {
     function showAlert(msg, type) {
         const existing = document.querySelector(`.${type}`);
         if (existing) existing.remove();
-        
+
         const div = document.createElement('div');
         div.className = `${type} animate-in`;
         div.textContent = msg;
         document.body.appendChild(div);
-        
+
         setTimeout(() => {
             div.classList.replace('animate-in', 'animate-out');
             setTimeout(() => div.remove(), 300);
         }, 3000);
     }
 
-    // Premium Search System
+    // ====== Premium Search System with autocomplete ======
     const searchWrapper = document.querySelector('.search-wrapper');
     const searchContainer = document.querySelector('.search-container');
     const searchBar = document.querySelector('.search-bar');
@@ -98,23 +158,131 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchBtn = document.querySelector('.search-btn');
     const searchOverlay = document.querySelector('.search-overlay');
 
-    function toggleSearch() {
-        searchWrapper.classList.toggle('expanded');
-        
-        if (searchWrapper.classList.contains('expanded')) {
-            searchInput.focus();
-            searchBtn.innerHTML = '<i class="fas fa-times"></i>';
-            searchBtn.classList.add('close-btn');
-            document.body.style.overflow = 'hidden';
-        } else {
-            searchBtn.innerHTML = '<i class="fas fa-search"></i>';
-            searchBtn.classList.remove('close-btn');
-            searchInput.value = '';
-            document.body.style.overflow = '';
+    // Create autocomplete container dynamically
+    const autocompleteList = document.createElement('ul');
+    autocompleteList.className = 'autocomplete-list';
+    searchContainer.appendChild(autocompleteList);
+
+    let allUsernames = [];
+    let selectedSuggestionIndex = -1;
+
+    // Fetch all usernames once on first expand or input
+    async function fetchUsernames() {
+        if (allUsernames.length > 0) return; // already fetched
+        try {
+            const res = await fetch('/api/getAllUsernames');
+            if (!res.ok) throw new Error('Failed to fetch usernames');
+            allUsernames = await res.json(); // array of strings expected
+        } catch (err) {
+            console.error('Error fetching usernames for autocomplete:', err);
         }
     }
 
-    // Search event listeners
+    function filterSuggestions(query) {
+        if (!query) return [];
+        return allUsernames
+            .filter(name => name.toLowerCase().startsWith(query.toLowerCase()))
+            .slice(0, 10); // max 10 suggestions
+    }
+
+    function clearSuggestions() {
+        autocompleteList.innerHTML = '';
+        autocompleteList.style.display = 'none';
+        selectedSuggestionIndex = -1;
+    }
+
+    function showSuggestions(suggestions) {
+        autocompleteList.innerHTML = '';
+        if (suggestions.length === 0) {
+            clearSuggestions();
+            return;
+        }
+
+        suggestions.forEach((suggestion, index) => {
+            const li = document.createElement('li');
+            li.textContent = suggestion;
+            li.tabIndex = 0;
+
+            li.addEventListener('click', () => {
+                searchInput.value = suggestion;
+                clearSuggestions();
+                performSearch(suggestion);
+            });
+
+            autocompleteList.appendChild(li);
+        });
+
+        autocompleteList.style.display = 'block';
+    }
+
+    function updateActiveSuggestion(items) {
+        items.forEach((item, i) => {
+            if (i === selectedSuggestionIndex) {
+                item.classList.add('active');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    // Enhance toggleSearch to fetch usernames on expand
+    const originalToggleSearch = toggleSearch;
+    toggleSearch = async function () {
+        originalToggleSearch();
+        if (searchWrapper.classList.contains('expanded')) {
+            await fetchUsernames();
+        } else {
+            clearSuggestions();
+        }
+    };
+
+    // On input, filter suggestions and show
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        if (!query) {
+            clearSuggestions();
+            return;
+        }
+        const suggestions = filterSuggestions(query);
+        showSuggestions(suggestions);
+    });
+
+    // Keyboard navigation in suggestions
+    searchInput.addEventListener('keydown', (e) => {
+        const items = autocompleteList.querySelectorAll('li');
+        if (items.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedSuggestionIndex = (selectedSuggestionIndex + 1) % items.length;
+            updateActiveSuggestion(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedSuggestionIndex = (selectedSuggestionIndex - 1 + items.length) % items.length;
+            updateActiveSuggestion(items);
+        } else if (e.key === 'Enter') {
+            if (selectedSuggestionIndex > -1) {
+                e.preventDefault();
+                items[selectedSuggestionIndex].click();
+            } else if (searchInput.value.trim() !== '') {
+                e.preventDefault();
+                performSearch(searchInput.value.trim());
+                clearSuggestions();
+            }
+        } else if (e.key === 'Escape') {
+            clearSuggestions();
+        }
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchWrapper.contains(e.target)) {
+            clearSuggestions();
+        }
+    });
+
+    // Search event listeners (your original ones)
     searchInput.addEventListener('click', toggleSearch);
     searchBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -129,27 +297,57 @@ document.addEventListener('DOMContentLoaded', function () {
     searchBar.addEventListener('click', (e) => e.stopPropagation());
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && searchInput.value.trim() !== '') {
+            e.preventDefault();
             performSearch(searchInput.value.trim());
         }
     });
 
-    function performSearch(query) {
+    async function performSearch(query) {
         console.log('Searching for:', query);
-        showCustomAlert(`Searching for: ${query}`);
+        // Check if username exists by hitting your backend:
+        try {
+            const res = await fetch('/api/checkUsername', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: query })
+            });
+            if (!res.ok) throw new Error('Server error');
+            const data = await res.json();
+
+            if (data.exists) {
+                // Redirect to stats page for that username
+                window.location.href = `/stats/${encodeURIComponent(query)}`;
+            } else {
+                // Redirect to "name not found" page
+                window.location.href = '/namenotfound.html';
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+            showErrorAlert('An error occurred while searching. Please try again.');
+        }
         toggleSearch();
     }
 
-    // Dynamic styles
+    function toggleSearch() {
+        searchWrapper.classList.toggle('expanded');
+
+        if (searchWrapper.classList.contains('expanded')) {
+            searchInput.focus();
+            searchBtn.innerHTML = '<i class="fas fa-times"></i>';
+            searchBtn.classList.add('close-btn');
+            document.body.style.overflow = 'hidden';
+        } else {
+            searchBtn.innerHTML = '<i class="fas fa-search"></i>';
+            searchBtn.classList.remove('close-btn');
+            searchInput.value = '';
+            document.body.style.overflow = '';
+            clearSuggestions();
+        }
+    }
+
+    // ====== Dynamic styles ======
     const style = document.createElement('style');
     style.textContent = `
-        /* Notification animations */
-        .animate-in {
-            animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        .animate-out {
-            animation: fadeOut 0.3s ease-out forwards;
-        }
-        
         /* Search system */
         .search-wrapper {
             position: relative;
@@ -168,6 +366,8 @@ document.addEventListener('DOMContentLoaded', function () {
             transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             will-change: transform, opacity;
+            position: relative;
+            z-index: 101;
         }
         .search-input {
             background: transparent;
@@ -193,7 +393,6 @@ document.addEventListener('DOMContentLoaded', function () {
             backdrop-filter: blur(5px);
             will-change: opacity;
         }
-        
         /* Expanded state */
         .search-wrapper.expanded .search-container {
             position: fixed;
@@ -217,17 +416,67 @@ document.addEventListener('DOMContentLoaded', function () {
             opacity: 1;
             visibility: visible;
         }
-        
-        /* Animations */
-        @keyframes slideIn {
-            from { transform: translateY(100px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1e1e1e;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 0 0 10px 10px;
+            z-index: 1100;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            color: white;
+            font-size: 1rem;
+            display: none;
+        }
+        .autocomplete-list li {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .autocomplete-list li:hover,
+        .autocomplete-list li.active {
+            background: #333;
+        }
+
+        /* Notifications */
+        .error-notification, .custom-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1500;
+            color: white;
+            user-select: none;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+        .error-notification {
+            background-color: #e74c3c;
+        }
+        .custom-notification {
+            background-color: #3498db;
+        }
+        .animate-in {
+            animation: fadeIn 0.3s forwards;
+        }
+        .animate-out {
+            animation: fadeOut 0.3s forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         @keyframes fadeOut {
-            to { opacity: 0; transform: translateY(20px); }
-        }
-        .profile-section {
-            transition: opacity 0.3s ease;
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
         }
     `;
     document.head.appendChild(style);

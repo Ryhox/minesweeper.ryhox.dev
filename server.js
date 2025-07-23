@@ -20,6 +20,9 @@ const io = socketIo(server, {
   }
 });
 
+//rename cooldown for ACCOUNT
+const RENAME_COOLDOWN_DAYS = 0; 
+
 
 // SETTINGSSSS
 const DIFFICULTY_SETTINGS = {
@@ -830,110 +833,67 @@ function checkGameCompletion(lobby) {
 const ROOT_DIR = path.resolve(__dirname);
 const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
 
-// Funktion zur Überprüfung/Erstellung des userDATA Ordners
-function ensureUserDataDir() {
-  try {
-    if (!fs.existsSync(USER_DATA_DIR)) {
-      fs.mkdirSync(USER_DATA_DIR, { recursive: true });
-      console.log('userDATA directory created at:', USER_DATA_DIR);
-    }
-    return true;
-  } catch (err) {
-    console.error('Error creating userDATA directory:', err);
-    return false;
-  }
+// Ensure userDATA directory exists
+if (!fs.existsSync(USER_DATA_DIR)) {
+  fs.mkdirSync(USER_DATA_DIR, { recursive: true });
 }
 
-// API-Route für Benutzerregistrierung anpassen
-app.post('/api/createUser', async (req, res) => {
-  console.log('POST /api/createUser', req.body);
-  const { username, email } = req.body;
-  
-  // Prüfe zuerst ob der userDATA Ordner existiert/erstellt werden kann
-  if (!ensureUserDataDir()) {
-    return res.status(500).json({ 
-      success: false,
-      message: 'Server-Fehler: Kann Benutzerdaten nicht speichern' 
-    });
-  }
 
-  if (!username || !email) {
-    return res.status(400).json({ 
-      success: false,
-      message: 'Fehlende Daten' 
-    });
-  }
 
-  const userFile = path.join(USER_DATA_DIR, `${username}.json`);
-  
-  // Prüfe ob Benutzer bereits existiert
-  if (fs.existsSync(userFile)) {
-    return res.status(400).json({ 
-      success: false,
-      message: 'Benutzername existiert bereits' 
-    });
-  }
-
-  // Erstelle lokale Benutzerdaten
-  const userData = {
-    username,
-    email,
-    createdAt: new Date().toISOString(),
-    nameHistory: []
-  };
-
-  try {
-    // Speichere zuerst lokal
-    fs.writeFileSync(userFile, JSON.stringify(userData, null, 2), 'utf8');
-    
-    res.json({ 
-      success: true,
-      message: 'Benutzer erfolgreich gespeichert'
-    });
-  } catch (err) {
-    console.error('Error writing user file:', err);
-    // Wenn lokales Speichern fehlschlägt, sende Fehlermeldung
-    res.status(500).json({ 
-      success: false,
-      message: 'Fehler beim Speichern der Benutzerdaten' 
-    });
-  }
+app.get('/stats/:username', (req, res) => {
+    const username = req.params.username;
+    res.sendFile(path.join(__dirname, 'public', 'stats.html'));
 });
 
-// Username-Check API anpassen
-app.post('/api/checkUsername', (req, res) => {
-  if (!ensureUserDataDir()) {
-    return res.status(500).json({ 
-      success: false,
-      message: 'Server-Fehler: Kann Benutzerdaten nicht überprüfen' 
-    });
-  }
+app.get('/api/getStats/:username', (req, res) => {
+    const username = req.params.username.toLowerCase();
 
-  const { username } = req.body;
-  const userFile = path.join(USER_DATA_DIR, `${username}.json`);
-  res.json({ exists: fs.existsSync(userFile) });
+    fs.readdir(USER_DATA_DIR, (err, files) => {
+        if (err) {
+            console.error('Failed to read user data dir:', err);
+            return res.status(500).json({ error: 'Server error' });
+        }
+
+        const jsonFiles = files.filter(f => f.endsWith('.json'));
+
+        let foundUserFile = null;
+
+        for (const file of jsonFiles) {
+            const data = JSON.parse(fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf-8'));
+            if (data.username && data.username.toLowerCase() === username) {
+                foundUserFile = path.join(USER_DATA_DIR, file);
+                break;
+            }
+        }
+
+        if (!foundUserFile) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const stats = JSON.parse(fs.readFileSync(foundUserFile, 'utf-8'));
+
+        res.json({
+            username: stats.username,
+            multiplayer: stats.multiplayer || {},    
+            singleplayer: stats.singleplayer || {},
+            combined: stats.combined || {}
+        });
+    });
 });
+
 app.post('/api/createUser', (req, res) => {
-  console.log('POST /api/createUser', req.body);
-  const { username, email } = req.body;
-  if (!username || !email) {
-    return res.status(400).json({ message: 'Fehlende Daten' });
+  const { uid, username, email } = req.body;
+  if (!uid || !username || !email) {
+    return res.status(400).json({ message: 'Missing data' });
   }
 
-  // Ensure userDATA directory exists
-  const userDir = path.join(__dirname, 'userDATA');
-  if (!fs.existsSync(userDir)) {
-    fs.mkdirSync(userDir, { recursive: true });
-  }
-
-  // Check if username already exists
-  const userFile = path.join(userDir, `${username}.json`);
+  const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
   if (fs.existsSync(userFile)) {
-    return res.status(400).json({ message: 'Benutzername existiert bereits' });
+    return res.status(400).json({ message: 'User already exists' });
   }
 
-  // Save each user as a separate file: userDATA/username.json
   const userData = {
+    uid,
     username,
     email,
     createdAt: new Date().toISOString(),
@@ -942,78 +902,121 @@ app.post('/api/createUser', (req, res) => {
 
   try {
     fs.writeFileSync(userFile, JSON.stringify(userData, null, 2), 'utf8');
-    res.json({ message: 'Benutzer erfolgreich gespeichert' });
+    res.json({ message: 'User created successfully' });
   } catch (err) {
     console.error('Error writing user file:', err);
-    res.status(500).json({ message: 'Fehler beim Schreiben der Datei' });
+    res.status(500).json({ message: 'Error saving user data' });
   }
 });
 
-app.post('/api/checkUsername', (req, res) => {
-  const { username } = req.body;
-  const userDir = path.join(__dirname, 'userDATA');
-  const userFile = path.join(userDir, `${username}.json`);
-  res.json({ exists: fs.existsSync(userFile) });
-});
+// Delete user by UID
 app.post('/api/deleteUser', (req, res) => {
-  const { username } = req.body;
-  const userDir = path.join(__dirname, 'userDATA');
-  const userFile = path.join(userDir, `${username}.json`);
+  const { uid } = req.body;
+  const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
   try {
     if (fs.existsSync(userFile)) {
       fs.unlinkSync(userFile);
-      res.json({ message: 'Benutzerdatei gelöscht' });
+      res.json({ message: 'User file deleted' });
     } else {
-      res.json({ message: 'Benutzerdatei nicht gefunden' });
+      res.json({ message: 'User file not found' });
     }
   } catch (err) {
-    res.status(500).json({ message: 'Fehler beim Löschen der Datei' });
+    res.status(500).json({ message: 'Error deleting file' });
   }
 });
+// Check if a username already exists
+app.post('/api/checkUsername', (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ exists: false });
+
+  const userFiles = fs.readdirSync(USER_DATA_DIR);
+  const exists = userFiles.some(file => {
+    const userData = JSON.parse(fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf8'));
+    return userData.username.toLowerCase() === username.toLowerCase();
+  });
+
+  res.json({ exists });
+});
+
+
 app.post('/api/updateUser', (req, res) => {
-  const { oldUsername, newUsername, email } = req.body;
-  const userDir = path.join(__dirname, 'userDATA');
-  const oldFile = path.join(userDir, `${oldUsername}.json`);
-  const newFile = path.join(userDir, `${newUsername}.json`);
+  const { uid, newUsername, email } = req.body;
+  const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
 
-  let createdAt = new Date().toISOString();
-  let nameHistory = [];
-
-  // If old file exists, preserve createdAt and history
-  if (fs.existsSync(oldFile)) {
-    try {
-      const oldData = JSON.parse(fs.readFileSync(oldFile, 'utf8'));
-      createdAt = oldData.createdAt || createdAt;
-      nameHistory = oldData.nameHistory || [];
-      nameHistory.push({ name: oldUsername, changedAt: new Date().toISOString() });
-      fs.unlinkSync(oldFile); // Delete old file
-    } catch (err) {
-      return res.status(500).json({ message: 'Fehler beim Lesen der alten Datei' });
-    }
+  if (!fs.existsSync(userFile)) {
+    return res.status(404).json({ message: 'User not found' });
   }
-
-  // If new file exists and it's not just a rename, block it
-  if (fs.existsSync(newFile) && oldUsername !== newUsername) {
-    return res.status(400).json({ message: 'Benutzername existiert bereits' });
-  }
-
-  const userData = {
-    username: newUsername,
-    email,
-    createdAt,
-    nameHistory
-  };
 
   try {
-    fs.writeFileSync(newFile, JSON.stringify(userData, null, 2), 'utf8');
-    res.json({ message: 'Benutzer erfolgreich aktualisiert' });
+    const userData = JSON.parse(fs.readFileSync(userFile, 'utf8'));
+    const oldUsername = userData.username;
+
+    if (oldUsername !== newUsername) {
+      const lastChange = userData.nameHistory[userData.nameHistory.length - 1];
+      if (lastChange) {
+        const lastDate = new Date(lastChange.changedAt);
+        const now = new Date();
+        const diffMs = now - lastDate;
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+        if (diffDays < RENAME_COOLDOWN_DAYS) {
+          const remainingMs = RENAME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000 - diffMs;
+          const remainingDays = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+          const remainingHours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+          return res.status(400).json({
+            message: `You can change your name again in ${remainingDays}d ${remainingHours}h ${remainingMinutes}m`
+          });
+        }
+      }
+
+      userData.nameHistory.push({
+        name: oldUsername,
+        changedAt: new Date().toISOString()
+      });
+    }
+
+    userData.username = newUsername;
+    userData.email = email;
+
+    fs.writeFileSync(userFile, JSON.stringify(userData, null, 2), 'utf8');
+    res.json({ message: 'User updated successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Fehler beim Schreiben der Datei' });
+    console.error('Update error:', err);
+    res.status(500).json({ message: 'Error updating user' });
   }
 });
-
-
-
+// Get user by UID
+app.post('/api/getUser', (req, res) => {
+  const { uid } = req.body;
+  const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
+  
+  if (!fs.existsSync(userFile)) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  try {
+    const data = fs.readFileSync(userFile, 'utf8');
+    const userData = JSON.parse(data);
+    res.json(userData);
+  } catch (err) {
+    res.status(500).json({ error: 'Error reading user data' });
+  }
+});
+app.get('/api/getAllUsernames', (req, res) => {
+  try {
+    const userFiles = fs.readdirSync(USER_DATA_DIR);
+    const usernames = userFiles.map(file => {
+      const userData = JSON.parse(fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf8'));
+      return userData.username;
+    });
+    res.json(usernames);
+  } catch (err) {
+    console.error('Error fetching usernames:', err);
+    res.status(500).json({ message: 'Failed to fetch usernames' });
+  }
+});
 app.post('/submit', async (req, res) => {
   const token = req.body['h-captcha-response'];
   const secret = '33f81284-b120-4654-b0a0-3d7c76061da6';
@@ -1086,20 +1089,7 @@ app.post('/recaptcha', async (req, res) => {
     res.json({ success: false, message: 'Fehler bei Anfrage an Google' });
   }
 });
-async function verifyCaptchaAndRegister(token, registrationData) {
-  const res = await fetch('/recaptcha', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token })
-  });
 
-  const data = await res.json();
-
-  if (!data.success) {
-    showErrorAlert('Captcha verification failed: ' + (data.message || ''));
-    return;
-  }
-}
 
 
 const PORT = process.env.PORT || 3000;

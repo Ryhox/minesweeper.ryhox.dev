@@ -1807,18 +1807,17 @@ background-color: lightcoral;
 
 .stats-selection {
     width: 80%;
-
+    margin: 0 auto 20px auto; /* <-- This centers horizontally */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 0 0 20px 0;
     padding: 15px;
     background-color: #1d1d1d;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border: 1px solid #494949;
-
+    border: 1px solid #494949;
 }
+
 
 /* Mode  Buttons */
 .mode-selection {
@@ -1889,6 +1888,196 @@ background-color: lightcoral;
         width: 100%;
     }
 }
+.search-wrapper {
+    position: relative;
+    margin-right: 20px;
+    z-index: 100;
+}
+
+.search-container {
+    transition: all 0.3s ease;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    padding: 8px 15px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.search-input {
+    background: transparent;
+    border: none;
+    color: white;
+    width: 180px;
+    padding: 5px 10px;
+    outline: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+.search-input:focus {
+    border: none;
+}
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.search-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 5px;
+    transition: all 0.2s ease;
+}
+
+.search-btn:hover {
+    color: #aaa;
+}
+
+.search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgb(0, 0, 0);
+    z-index: 99;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(3px);
+}
+
+.search-wrapper.expanded .search-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    width: 80%;
+    max-width: 600px;
+}
+
+.search-wrapper.expanded .search-bar {
+    width: 100%;
+    background: rgba(40, 40, 40, 0.95);
+    border-radius: 12px;
+    padding: 20px 25px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-wrapper.expanded .search-input {
+    width: 100%;
+    font-size: 20px;
+    padding: 8px 15px;
+}
+
+.search-wrapper.expanded .search-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.search-wrapper.expanded .search-btn.close-btn {
+    color: #aaa;
+    font-size: 24px;
+}
+
+.search-wrapper.expanded .search-btn.close-btn:hover {
+    color: white;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: 100%; /* below input */
+  left: 0;
+  right: 0;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 0 0 10px 10px;
+  z-index: 1100;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: white;
+  font-size: 1rem;
+  display: none; /* hidden by default */
+}
+
+.autocomplete-list li {
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.autocomplete-list li:hover,
+.autocomplete-list li.active {
+  background: #333;
+}
+
+/* Extracted styles for landingPage container */
+#landingPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px;
+  gap: 30px;
+}
+
+#landingPage p {
+  font-size: 1.2rem;
+  color: #ccc;
+  text-align: center;
+  max-width: 600px;
+}
+
+/* Cards container below the search bar */
+.landing-info-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+/* Individual info card style */
+.info-cardlanding {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+  width: 200px;
+  text-align: center;
+      transition: all 0.3s ease;
+
+}
+.info-cardlanding:hover {
+    background: #303030;
+    transform: translateY(-3px);
+}
+.info-iconlanding {
+    font-size: 1.5rem;
+    color: lightsalmon;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.info-iconlanding i {
+      background: rgba(255, 182, 193, 0.1);
+    border-radius: 50%;
+  padding: 8px;
+  margin-bottom: 10px;
+  font-size: 1.8rem;
+}
+
+
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

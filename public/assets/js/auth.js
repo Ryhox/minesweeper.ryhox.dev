@@ -29,42 +29,20 @@ document.addEventListener('DOMContentLoaded', function () {
     document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
   }
 
-  const style = document.createElement('style');
-  style.textContent = `
-    .error-notification {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #ff4444;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      animation: slideIn 0.3s ease-out;
-      z-index: 10000;
-    }
-    .fade-out {
-      animation: fadeOut 0.3s ease-out forwards;
-    }
-    @keyframes slideIn {
-      from { transform: translateY(100px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-  `;
-  document.head.appendChild(style);
-
+  // Auto-assign displayName based on backend username
   auth.onAuthStateChanged(async user => {
     if (user) {
       try {
+        const token = await user.getIdToken();
         const response = await fetch('/api/getUser', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${await user.getIdToken()}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ uid: user.uid })
         });
+
         const userData = await response.json();
         if (userData.username && user.displayName !== userData.username) {
           await user.updateProfile({ displayName: userData.username });
@@ -91,20 +69,6 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
           const { user } = await auth.signInWithEmailAndPassword(email, password);
           const token = await user.getIdToken();
-
-          const response = await fetch('/api/getUser', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
-            const userData = await response.json();
-            if (userData.username && user.displayName !== userData.username) {
-              await user.updateProfile({ displayName: userData.username });
-            }
-          }
-
           setCookie('auth_token', token, 30);
           window.location.href = '/profile.html';
         } catch {
@@ -120,49 +84,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const captchaResponse = grecaptcha.getResponse();
         if (!captchaResponse) {
-          showErrorAlert("Please verify that you are not a robot by completing the captcha.");
-          return;
+          return showErrorAlert("Please verify that you are not a robot.");
         }
 
         try {
           const checkRes = await fetch('/api/checkUsername', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, exact: true })
+            body: JSON.stringify({ username })
           });
 
-          if (!checkRes.ok) throw new Error('Server error during username check');
           const checkData = await checkRes.json();
-
           if (checkData.exists) {
-            showErrorAlert('This username is already taken');
-            return;
+            return showErrorAlert('Username already taken');
           }
-
-          const createRes = await fetch('/api/createUser', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email })
-          });
-
-          if (!createRes.ok) throw new Error('Failed to create local user');
 
           const { user } = await auth.createUserWithEmailAndPassword(email, password);
           await user.updateProfile({ displayName: username });
+
+          await fetch('/api/createUser', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: user.uid,
+              username,
+              email
+            })
+          });
+
           const token = await user.getIdToken();
           setCookie('auth_token', token, 30);
-
           window.location.href = '/profile.html';
-
         } catch (err) {
           console.error('Registration error:', err);
-          if (err.message.includes('email')) {
-            showErrorAlert('Email address is already in use');
-          } else if (err.message.includes('password')) {
-            showErrorAlert('Password must be at least 6 characters');
-          } else {
-            showErrorAlert('Registration failed. Please try again.');
-          }
+          showErrorAlert('Registration failed: ' + err.message);
         }
       }
     });
@@ -178,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.signin').forEach(btn => {
     btn.addEventListener('click', async () => {
       oauthLoginInProgress = true;
-
       const brand = btn.querySelector('i')?.classList[1]?.split('-')[1];
       const provider = oauthButtons[brand];
       if (!provider) return;
@@ -187,49 +141,42 @@ document.addEventListener('DOMContentLoaded', function () {
         const { user } = await auth.signInWithPopup(provider);
         const token = await user.getIdToken();
 
-        const response = await fetch('/api/getUser', {
+        // Fallback name if no display name
+        let currentName = user.displayName || user.email?.split('@')[0] || `user${Math.floor(100000 + Math.random() * 900000)}`;
+
+        const userRes = await fetch('/api/getUser', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ uid: user.uid })
         });
 
-        const userData = response.ok ? await response.json() : null;
-
-        if (!userData || !userData.username) {
-          let username;
-          if (brand === 'google') {
-            username = user.email?.split('@')[0];
-          } else {
-            username = user.displayName 
-                    || user.providerData[0]?.displayName 
-                    || user.email?.split('@')[0] 
-                    || `user${Math.floor(100000 + Math.random() * 900000)}`;
-          }
-
-          const email = user.email || 'noemail';
-
-          const createRes = await fetch('/api/createUser', {
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          currentName = userData.username || currentName;
+        } else {
+          await fetch('/api/createUser', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email })
+            body: JSON.stringify({
+              uid: user.uid,
+              username: currentName,
+              email: user.email || 'noemail'
+            })
           });
+        }
 
-          if (!createRes.ok) {
-            throw new Error('Failed to create user');
-          }
-
-          await user.updateProfile({ displayName: username });
-
-        } else if (user.displayName !== userData.username) {
-          await user.updateProfile({ displayName: userData.username });
+        if (user.displayName !== currentName) {
+          await user.updateProfile({ displayName: currentName });
         }
 
         setCookie('auth_token', token, 30);
         window.location.href = '/profile.html';
 
       } catch (err) {
-        showErrorAlert(`${brand} Login Failed`);
-        console.error('OAuth error:', err);
+        showErrorAlert(`${brand} Login failed: ${err.message}`);
         oauthLoginInProgress = false;
       }
     });

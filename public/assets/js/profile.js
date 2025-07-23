@@ -14,25 +14,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let emailVisible = false;
 
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            const displayName = user.displayName || '(no username)';
-            const email = user.email;
-            const memberSince = user.metadata.creationTime
-                ? new Date(user.metadata.creationTime).toLocaleDateString()
-                : '';
-            statusText.textContent = `Member since: ${memberSince}`;
-            usernameSpan.textContent = displayName;
-            usernameInput.value = displayName;
+auth.onAuthStateChanged(user => {
+    if (user) {
+        const displayName = user.displayName || '(no username)';
+        const email = user.email;
+        const memberSince = user.metadata.creationTime
+            ? new Date(user.metadata.creationTime).toLocaleDateString()
+            : '';
+        statusText.textContent = `Member since: ${memberSince}`;
+        usernameSpan.textContent = displayName;
+        usernameInput.value = displayName;
 
-            emailElem.textContent = maskEmail(email);
+        emailElem.textContent = maskEmail(email);
 
-            logoutBtn.style.display = 'inline-block';
-            deleteBtn.style.display = 'inline-block';
-        } else {
-            window.location.href = 'login.html';
+        logoutBtn.style.display = 'inline-block';
+        deleteBtn.style.display = 'inline-block';
+
+        // Show password reset button only if signed in with password provider
+        const hasPasswordProvider = user.providerData.some(
+            (provider) => provider.providerId === 'password'
+        );
+        const passwordCard = document.querySelector('.password-card');
+        if (passwordCard) {
+            passwordCard.style.display = hasPasswordProvider ? 'flex' : 'none';
         }
-    });
+    } else {
+        window.location.href = 'login.html';
+    }
+});
+
 
     function maskEmail(email) {
         if (!email) return '';
@@ -68,65 +78,75 @@ document.addEventListener('DOMContentLoaded', function () {
         auth.signOut().then(() => location.reload());
     });
 
-    deleteBtn.addEventListener('click', async () => {
-        if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
-            const user = auth.currentUser;
-            const username = user.displayName;
-            try {
-                await user.delete();
-                localStorage.removeItem('displayName');
-                await fetch('/api/deleteUser', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username })
-                });
-                showCustomAlert("Account deleted successfully.");
-                location.reload();
-            } catch (error) {
-                if (error.code === 'auth/requires-recent-login') {
-                    showCustomAlert("Please re-login and try deleting again.");
-                    auth.signOut().then(() => location.reload());
-                } else {
-                    showCustomAlert("Error deleting account: " + error.message);
-                }
-            }
-        }
+  deleteBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    if (confirm('Permanently delete your account?')) {
+      try {
+        // Delete from our database
+        await fetch('/api/deleteUser', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: user.uid })
+        });
+        
+        // Delete from Firebase
+        await user.delete();
+        window.location.href = '/login.html';
+      } catch (err) {
+        showErrorAlert('Error deleting account: ' + err.message);
+      }
+    }
+  });
+
+saveNameBtn.addEventListener('click', async () => {
+  const newName = usernameInput.value.trim();
+  const user = auth.currentUser;
+
+  if (!newName) return showErrorAlert('Please enter a name');
+  if (!user) return showErrorAlert('User not authenticated');
+
+  try {
+    // Check username availability
+    const checkRes = await fetch('/api/checkUsername', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: newName })
     });
 
-    saveNameBtn.addEventListener('click', async () => {
-        const newName = usernameInput.value.trim();
-        if (!newName) return showErrorAlert('Please enter a valid name.');
+    const checkData = await checkRes.json();
+    if (checkData.exists) {
+      return showErrorAlert('Username already taken');
+    }
 
-        const user = auth.currentUser;
-        const oldName = user.displayName;
-
-        try {
-            const checkRes = await fetch('/api/checkUsername', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: newName })
-            });
-            const checkData = await checkRes.json();
-            if (checkData.exists && newName !== oldName) {
-                showErrorAlert('Username already taken. Please choose another.');
-                return;
-            }
-
-            await user.updateProfile({ displayName: newName });
-            localStorage.setItem('displayName', newName);
-            usernameSpan.textContent = newName;
-            statusText.textContent = `Member since: ${user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : ''}`;
-            showCustomAlert("Username updated successfully.");
-
-            await fetch('/api/updateUser', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ oldUsername: oldName, newUsername: newName, email: user.email })
-            });
-        } catch (err) {
-            showErrorAlert('Error updating username: ' + err.message);
-        }
+    // Call your backend updateUser API first
+    const updateRes = await fetch('/api/updateUser', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: user.uid,
+        newUsername: newName,
+        email: user.email
+      })
     });
+
+    const updateData = await updateRes.json();
+
+    if (!updateRes.ok) {
+      return showErrorAlert(updateData.message || 'Error updating user');
+    }
+
+    // Only if backend update succeeded, update Firebase profile & UI
+    await user.updateProfile({ displayName: newName });
+    usernameSpan.textContent = newName;
+    showCustomAlert('Username updated successfully');
+
+  } catch (err) {
+    showErrorAlert('Error updating: ' + err.message);
+  }
+});
+
 
 
     function showErrorAlert(msg) {

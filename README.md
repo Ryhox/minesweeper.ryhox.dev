@@ -17,11 +17,12 @@ A sleek, real-time **Multiplayer Minesweeper** game built for the web — featur
   - Dynamic mine generation
 
 - 📊 **Stats & Leaderboards**
-  - **Multiplayer**: winstreaks, win rate, avg. time, leaderboard rank
-  - **Solo**: fastest time, avg. time, games played
+  - **Multiplayer**: winstreaks, win rate, avg. time, leaderboard rank, Games Played, Wins, Losses
+  - **Solo**: fastest time, avg. time, leaderboard rank, games played, Mines Hit, Best Level, Completed Games, Failed Games
+  - **Combined**: Total Games Played, Overall Win Rate, Best Time, Average Time, Total Mines Hit, Total Wins, Days Played
 
 - ✍️ **Account System**
-  - Firebase auth with **Google**, **Discord**, **GitHub** or **Twitter(X)**
+  - Firebase auth with **Google**, **Discord**, **GitHub** or **Twitter(X)** or Normal **E-Mail and Password Login**
   - Unique usernames
 
 - 📱 **Responsive UI**

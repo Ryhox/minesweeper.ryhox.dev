@@ -22,6 +22,30 @@ let gameTimer = {
   isPaused: false
 };
 
+
+let username = null;
+const name = null;
+function waitForUsername() {
+  return new Promise(resolve => {
+    if (username) {
+      resolve(username);
+    } else {
+      socket.once('authInitSuccess', ({ name }) => {
+        username = name;
+        resolve(username);
+      });
+    }
+  });
+}
+// Auth-State-Änderung
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) return;
+
+  const token = await user.getIdToken();
+  socket.emit('authInit', { token });
+});
+
+
 function startTimer() {
   stopTimer();
   gameTimer.startTime = Date.now();
@@ -100,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-const validateName = (name) => name.trim().length > 0 && name.length <= 16;
 const validateCode = (code) => code.length === 4 && /^[A-Z0-9]+$/.test(code);
 
 if (errorParam) {
@@ -120,22 +143,11 @@ if (errorParam) {
 
 if (window.location.pathname === '/lobbycreation.html') {
   document.addEventListener('DOMContentLoaded', () => {
-    const nameInput = document.getElementById('nameInput');
     const createBtn = document.getElementById('createLobby');
     const joinBtn = document.getElementById('joinLobby');
     const codeInput = document.getElementById('lobbyCode');
-    const nameError = document.getElementById('nameError');
     const codeError = document.getElementById('codeError');
 
-    const savedName = localStorage.getItem('playerName');
-    if (savedName) {
-      nameInput.value = savedName;
-    }
-
-    nameInput.addEventListener('input', () => {
-      localStorage.setItem('playerName', nameInput.value);
-      nameError.textContent = '';
-    });
 
     socket.on('lobbyCreated', (code) => {
       window.location.href = `/lobby/${code}`;
@@ -176,14 +188,11 @@ if (window.location.pathname === '/lobbycreation.html') {
               `;
               list.appendChild(lobbyItem);
               
-              lobbyItem.querySelector('.join-lobby-btn').addEventListener('click', (e) => {
-                const name = document.getElementById('nameInput').value.trim();
-                if (validateName(name)) {
-                  window.location.href = `/lobby/${lobby.code}`;
-                } else {
-                  document.getElementById('lobbyBrowserModal').classList.remove('visible');
-                  document.getElementById('nameError').textContent = "Name must be 1-16 characters";
-                }
+              lobbyItem.querySelector('.join-lobby-btn').addEventListener('click', async (e) => {
+                const name = await waitForUsername();
+                window.location.href = `/lobby/${lobby.code}`;
+
+
               });
             });
           }
@@ -213,34 +222,28 @@ if (window.location.pathname === '/lobbycreation.html') {
       document.getElementById('difficultyModal').classList.remove('visible');
     });
 
-    document.getElementById('confirmCreate').addEventListener('click', () => {
+    document.getElementById('confirmCreate').addEventListener('click', async () => {
       const difficulty = document.getElementById('difficultySelect').value;
       const playerCount = parseInt(document.getElementById('playerCount').value);
-
-      socket.emit('createLobby', { difficulty, playerCount });
+      const name = await waitForUsername();
+      console.log("Creating lobby with  name:", name);
+      socket.emit('createLobby', { difficulty, playerCount, name });
       document.getElementById('difficultyModal').classList.remove('visible');
     });
 
-    createBtn.addEventListener('click', () => {
-      const name = nameInput.value.trim();
-      if (!validateName(name)) {
-        nameError.textContent = "Name must be 1-16 characters";
-              document.getElementById('difficultyModal').classList.remove('visible');
-        return;
-      }
+    createBtn.addEventListener('click', async () => {
+      const name = await waitForUsername();
+            console.log("Creating lobby2 with  name:", name);
+
       localStorage.setItem("playerName", name);
       document.getElementById('difficultyModal').classList.add('visible');
     });
 
     joinBtn.onclick = () => {
       const code = codeInput.value.trim().toUpperCase();
-      const name = nameInput.value.trim();
       
       let hasError = false;
-      if (!validateName(name)) {
-        nameError.textContent = "Name must be 1-16 characters";
-        hasError = true;
-      }
+
       if (!validateCode(code)) {
         codeError.textContent = "Code must be 4 characters (A-Z, 0-9)";
         hasError = true;
@@ -254,34 +257,34 @@ if (window.location.pathname === '/lobbycreation.html') {
 }
 
 if (window.location.pathname.startsWith('/lobby/')) {
+  (async () => {
     spectating = false;
-  spectatedPlayerId = null;
-  alivePlayers = [];
-  playerStatus = 'alive';
-  
-  clearInterval(spectateTimerInterval);
-  clearInterval(timerInterval);
-  
-  const code = window.location.pathname.split('/').pop().toUpperCase();
-  const name = localStorage.getItem("playerName");
-  if (!name || !validateName(name)) {
-    alert("Invalid name. Returning to home.");
-    window.location.href = '/';
-  }
+    spectatedPlayerId = null;
+    alivePlayers = [];
+    playerStatus = 'alive';
 
-  document.getElementById('readyUp').onclick = () => socket.emit('readyUp');
-  
-  const codeDisplay = document.getElementById('lobbyCodeDisplay');
-  if (codeDisplay) {
-    codeDisplay.textContent = code;
-    codeDisplay.addEventListener('click', () => {
-      navigator.clipboard.writeText(code);
-      codeDisplay.classList.add('copied');
-      setTimeout(() => codeDisplay.classList.remove('copied'), 800);
-    });
-  }
-  socket.emit('joinLobby', { code, name });
-} 
+    clearInterval(spectateTimerInterval);
+    clearInterval(timerInterval);
+
+    const code = window.location.pathname.split('/').pop().toUpperCase();
+    const name = await waitForUsername();
+    console.log("Creating lobby3 with  name:", name);
+
+    document.getElementById('readyUp').onclick = () => socket.emit('readyUp');
+
+    const codeDisplay = document.getElementById('lobbyCodeDisplay');
+    if (codeDisplay) {
+      codeDisplay.textContent = code;
+      codeDisplay.addEventListener('click', () => {
+        navigator.clipboard.writeText(code);
+        codeDisplay.classList.add('copied');
+        setTimeout(() => codeDisplay.classList.remove('copied'), 800);
+      });
+    }
+    socket.emit('joinLobby', { code, name });
+  })();
+}
+
 
   socket.on('lobbyError', handleLobbyError);
   socket.on('updateUsers', updatePlayerList);
@@ -301,11 +304,12 @@ if (window.location.pathname.startsWith('/lobby/')) {
   socket.on('playerDisconnected', handlePlayerDisconnected);
   socket.on('reconnectGameData', reconnectGameHandler);
 
-socket.on('connect', () => {
+socket.on('connect', async () => {
   const previousId = localStorage.getItem('previousSocketId');
   const code = window.location.pathname.split('/').pop().toUpperCase();
-  const name = localStorage.getItem("playerName");
-  
+  const name = await waitForUsername();
+        console.log("Creating lobby with  name4:", name);
+
   localStorage.setItem('previousSocketId', socket.id);
 
   if (previousId && code && name && validateCode(code)) {
@@ -358,9 +362,9 @@ socket.on('inGameStatus', (isInGame) => {
   }
 });
 
-function handleLobbyError(msg) {
+async function handleLobbyError(msg) {
   if (['Lobby not found', 'Lobby full', 'Name taken'].includes(msg)) {
-    const name = localStorage.getItem("playerName") || "";
+    const name = await waitForUsername() || "";
     window.location.href = `/lobbycreation.html?error=${encodeURIComponent(msg.toLowerCase().replace(' ', '_'))}&name=${encodeURIComponent(name)}`;
   }
 }

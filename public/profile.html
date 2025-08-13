@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile | ryhox.dev</title>
+    <title>Profile</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/style.css">
     <script src="/assets/js/alert.js"></script>
@@ -103,23 +103,34 @@
         </div>
 
     
-    <button id="backButton" class="Btn-Container" onclick="window.history.back()">
-      <span class="text">Back!</span>
-      <span class="icon-Container">
-        <svg width="16" height="19" viewBox="0 0 16 19" fill="nones" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
-          <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
-          <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
-          <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
-          <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
-          <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
-          <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
-          <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
-          <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
-          <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
-        </svg>
-      </span>
-    </button>
+        <button id="backButton" class="Btn-Container" onclick="
+        const forbiddenPages = ['lobby.html', 'register.html', 'login.html'];
+        const referrer = document.referrer;
+        const referrerPage = referrer.substring(referrer.lastIndexOf('/') + 1);
+        if (!forbiddenPages.includes(referrerPage)) {
+            window.history.back();
+        } else {
+            window.location.href = '/index.html';
+        }
+        ">
+        <span class="text">Back!</span>
+        <span class="icon-Container">
+            <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+            <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+            <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+            <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+            <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+            <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+            <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+            <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+            <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+            <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+            </svg>
+        </span>
+        </button>
+
+
     <footer>
         <a href="https://ryhox.dev/privacy-policy" id="privacy-link">Privacy Policy</a>
         <p>Copyright 2025 ryhox.dev</p>

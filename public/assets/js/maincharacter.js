@@ -16,12 +16,16 @@ document.addEventListener('DOMContentLoaded', function() {
       signInBtn.style.display = 'none';
       dropdownEmail.textContent = user.displayName || '';
 
-      const username = user.displayName ? user.displayName.trim() : '';
-      if (username) {
-        statsLink.href = `/stats/${encodeURIComponent(username)}`;
-      } else {
-        statsLink.href = '#';
-      }
+    const statsBtn = document.getElementById('dropdownStats');
+    if (user.displayName) {
+      statsBtn.href = `/stats/${encodeURIComponent(user.displayName)}`;
+    } else {
+      statsBtn.href = '#';
+      statsBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        alert('No username set... weird...');
+      });
+    }
     } else {
       userIcon.style.display = 'none';
       userDropdown.classList.remove('active');
@@ -49,3 +53,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+
+  const backButton = document.getElementById('backButtonIndex');
+  if (backButton) {
+    backButton.onclick = () => {
+      window.location.href = '/';
+    };
+  }

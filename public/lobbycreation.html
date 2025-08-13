@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minesweeper Lobby</title>
+  <title>Lobby Creation</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/assets/css/style.css">
   <link rel="icon" type="image/png" href="assets/images/minesweeperlogo.png">
@@ -37,8 +37,8 @@
             <a href="/profile.html" class="dropdown-link profile">
                 <span>Profile</span>
             </a>
-            <a href="/settings.html" class="dropdown-link settings">
-                <span>Settings</span>
+            <a href="#" class="dropdown-link stats" id="dropdownStats">
+                <span>Stats</span>
             </a>
             <a href="#" class="dropdown-link logout" id="dropdownLogout">
                 <span>Logout</span>
@@ -49,30 +49,26 @@
 </div>
 </header>    
   <div class="input-group">
-    <div class="input-section">
-      <h3>Enter Your Name</h3>
-      <input id="nameInput" placeholder="Your Name (max 16 chars)" maxlength="16" autofocus>
-      <div id="nameError" class="error-message"></div>
-    </div>
+
     
 
         <div class="input-section">
       <h3>Lobby Creation</h3>
       <button class="button" id="createLobby">Create Lobby</button>
     </div>
-
-    
+                  <div class="input-section">
+      <h3>Lobby Browser</h3>
+      <button class="button"  id="browseLobbies">See Available Lobbies</button>
+    </div>
     <div class="input-section">
       <h3>Join a Lobby</h3>
       <input id="lobbyCode" placeholder="Enter Lobby Code" maxlength="4">
       <div id="codeError" class="error-message"></div>
       <button class="button" id="joinLobby">Join Lobby</button>
     </div>
-        <div class="input-section">
-      <h3>Lobby Browser</h3>
-      <button class="button"  id="browseLobbies">See Available Lobbies</button>
 
-    </div>
+
+
   </div>
 </div>
 <div id="difficultyModal" class="modalD">

@@ -44,6 +44,11 @@
 - fixed, by reworking the backend, the username bug with social logins should get saved now. 
 - worked on the stats-page and a bit on the stats logic overall
 
+# 28.07.2025
+- redone our Hosting Server
+
+# 29.07.2025
+- we now use the username from login to play multiplayer instead of an input
 
 
 # TODO
@@ -54,3 +59,7 @@
     2. Save Login in the Cookies
     
     3. BUGFIXES
+        - noticed a bug with the reconnect logic in a running game - the reconnect button only shows once - troubles issues. we need a better solution for the sockets.
+        
+
+    4. Quality of Life

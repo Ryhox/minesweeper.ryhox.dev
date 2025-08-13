@@ -5,8 +5,17 @@ const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 const https = require('https');
+const admin = require('firebase-admin');
+const serviceAccount = require('./firebaseServiceAccount.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 require('dotenv').config();
+
+const ROOT_DIR = path.resolve(__dirname);
+const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,6 +28,8 @@ const io = socketIo(server, {
     methods: ["GET", "POST"]
   }
 });
+
+
 
 //rename cooldown for ACCOUNT
 const RENAME_COOLDOWN_DAYS = 0; 
@@ -169,7 +180,35 @@ app.get('/api/lobbies', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  let currentRoom = null;
+socket.on('authInit', async ({ token }) => {
+    try {
+      const decoded = await admin.auth().verifyIdToken(token);
+      const uid = decoded.uid;
+
+      const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
+      if (!fs.existsSync(userFile)) {
+        socket.emit('forceReturnHome', 'User data not found');
+        return;
+      }
+
+      const json = JSON.parse(fs.readFileSync(userFile));
+      if (!json.username) {
+        socket.emit('forceReturnHome', 'Username not found in user file');
+        return;
+      }
+
+      if (!playerSessions[socket.id]) playerSessions[socket.id] = {};
+      playerSessions[socket.id].uid = uid;
+      playerSessions[socket.id].name = json.username;
+      socket.emit('authInitSuccess', { name: json.username });
+
+      console.log(`✅ Authenticated ${json.username} (${uid})`);
+
+    } catch (err) {
+      console.error("authInit error:", err);
+      socket.emit('forceReturnHome', 'Authentication failed');
+    }
+  });
 
   socket.on('joinRoom', (roomId) => {
     currentRoom = roomId;
@@ -830,8 +869,7 @@ function checkGameCompletion(lobby) {
 
 
 
-const ROOT_DIR = path.resolve(__dirname);
-const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
+
 
 if (!fs.existsSync(USER_DATA_DIR)) {
   fs.mkdirSync(USER_DATA_DIR, { recursive: true });

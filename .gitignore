@@ -5,3 +5,5 @@ public/assets/js/firebase-auth.js
 userDATA/*
 
 .env
+
+firebaseServiceAccount.json

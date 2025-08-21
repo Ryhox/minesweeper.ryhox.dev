@@ -5,10 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const signInBtn = document.getElementById('signInBtn');
   const logoutBtn = document.getElementById('dropdownLogout');
 
-  userIcon.style.display = 'none';
-  userDropdown.classList.remove('active');
-  signInBtn.style.display = 'inline-block';
-  dropdownEmail.textContent = '';
+
 
   firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
@@ -23,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
       statsBtn.href = '#';
       statsBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        alert('No username set... weird...');
+        alert('No username set... weird... report it.');
       });
     }
     } else {

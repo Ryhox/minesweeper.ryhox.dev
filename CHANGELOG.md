@@ -50,16 +50,14 @@
 # 29.07.2025
 - we now use the username from login to play multiplayer instead of an input
 
+# 21.08.2025
+- FINISHED BACKEND (STATS SHOULD WORK NOW)
+- bugfix with the reconnect Button
+- added a Leaderboard Page
+- other small fixes
 
 # TODO
-    1. finish backend
-        LB Multiplayer - Winstreaks, WinRate, Avg Time, Position on LB, games Played
-        LB Solo - fastest time, Avg Time, Position on LB, games Played, Leader Board
 
-    2. Save Login in the Cookies
-    
-    3. BUGFIXES
-        - noticed a bug with the reconnect logic in a running game - the reconnect button only shows once - troubles issues. we need a better solution for the sockets.
-        
+    1. Save Login in the Cookies
 
-    4. Quality of Life
+    2. Quality of Life

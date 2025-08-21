@@ -3,7 +3,7 @@ const DEFAULT_GRID_WIDTH = 10;
 const DEFAULT_GRID_HEIGHT = 10;
 const DEFAULT_MINE_COUNT = 15;
 
-// Current game settings (mutable)
+// Current game settings
 let GRID_WIDTH = DEFAULT_GRID_WIDTH;
 let GRID_HEIGHT = DEFAULT_GRID_HEIGHT;
 let MINE_COUNT = DEFAULT_MINE_COUNT;
@@ -18,7 +18,40 @@ let gameActive = false;
 let firstClick = true;
 const BEST_TIME_KEY = 'minesweeperBestTime';
 let gameTime = 0;
+async function saveSoloGameResult(won, time, mineHits) {
+    if (GRID_WIDTH < 10 || GRID_HEIGHT < 10 || MINE_COUNT < 15) {
+        console.log("Game settings do not meet criteria for saving stats (min 15x15, 15 mines).");
+        return;
+    }
 
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        console.log("User not logged in. Cannot save stats.");
+        return;
+    }
+
+    try {
+        const token = await user.getIdToken();
+        const result = {
+            won,
+            time, 
+            width: GRID_WIDTH,
+            height: GRID_HEIGHT,
+            mines: MINE_COUNT,
+            mineHits: mineHits
+        };
+
+        await fetch('/api/saveSoloGame', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token, result })
+        });
+    } catch (error) {
+        console.error("Failed to save solo game result:", error);
+    }
+}
 function initGame() {
   gameActive = true;
   firstClick = true;
@@ -123,8 +156,10 @@ function handleClick(event) {
     revealFullGrid();
     gameTime = Math.floor((Date.now() - startTime) / 1000);
     showWinModal(gameTime, false); 
+    saveSoloGameResult(false, null, 1);
     return;
   }
+
 
   floodFill(x, y);
   checkWin();
@@ -194,6 +229,7 @@ function checkWin() {
     clearInterval(timerInterval);
     gameTime = Math.floor((Date.now() - startTime) / 1000);
     showWinModal(gameTime, true);
+    saveSoloGameResult(true, gameTime, 0);
   }
 }
 
@@ -228,7 +264,6 @@ function updateTimer() {
   document.getElementById('gameTimer').textContent = `Time: ${elapsed} s`;
 }
 
-// --- Settings modal functions ---
 function openSettingsModal() {
   document.getElementById('settingsModal').style.display = 'flex';
 

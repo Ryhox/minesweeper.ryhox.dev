@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stats</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="/assets/js/firebase-auth.js"></script>
+</head>
+<body>
+  <header>
+    <a href="/index.html" style="text-decoration: none;">
+    <div class="header-title">RYHOX.DEV</div>
+    </a>
+    <div class="header-subtitle">STATS</div>
+    <div class="user-menu-wrapper" id="userMenuWrapper">
+      <div class="user-icon" id="userIcon" style="display:none;"><i class="fas fa-user-circle"></i></div>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="dropdown-header">
+          <p class="dropdown-signed">Signed in as</p>
+          <div class="dropdown-user">
+            <div class="dropdown-avatar">
+              <svg fill="currentColor" viewBox="0 0 20 20" class="avatar-svg"><path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path></svg>
+            </div>
+            <p class="dropdown-email" id="dropdownEmail"></p>
+          </div>
+        </div>
+        <div class="dropdown-links">
+          <a href="/profile.html" class="dropdown-link profile">
+            <span>Profile</span>
+          </a>
+          <a href="#" class="dropdown-link stats" id="dropdownStats">
+            <span>Stats</span>
+          </a>
+          <a href="#" class="dropdown-link logout" id="dropdownLogout">
+            <span>Logout</span>
+          </a>
+        </div>
+      </div>
+      <a href="/login.html" id="signInBtn" class="sign-in-btn" style="display:none;">Sign In / Sign Up</a>
+    </div>
+  </header>
+
+  <div class="containerprofile">
+    <div id="landingPsge">
+      <p class="leaderboard-description">
+        See the top 50 players of the game.
+      </p>
+          <a href="/stats.html">
+<button class="searchUserBttn" style="margin-bottom: 2vh;">
+  <span>
+    Search Users
+    <svg
+      viewBox="0 0 19.9 19.7"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-labelledby="title desc"
+      class="svg-icon search-icon"
+    >
+      <title>Search Icon</title>
+      <desc id="desc">A magnifying glass icon.</desc>
+      <g stroke="white" fill="none" class="search-path">
+        <path d="M18.5 18.3l-5.4-5.4" stroke-linecap="square"></path>
+        <circle r="7" cy="8" cx="8"></circle>
+      </g>
+    </svg>
+  </span>
+</button>
+</a>
+      <div class="stats-selection">
+        <div class="mode-selection">
+          <button class="mode-btn active" data-mode="multiplayer">Multiplayer Wins</button>
+          <button class="mode-btn" data-mode="singleplayer">Singleplayer Time</button>
+        </div>
+        <div class="time-selection">
+          <select id="timeRange">
+            <option value="all">All Time</option>
+            <option value="30">Last 30 Days</option>
+            <option value="90">Last 3 Months</option>
+            <option value="365">Last Year</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="leaderboardContainer">
+        <div class="leaderboard-loading">Loading Leaderboard...</div>
+      </div>
+    </div>
+  </div>
+
+  <button id="backButton" class="Btn-Container" onclick="
+    const forbiddenPages = ['lobby.html', 'register.html', 'login.html'];
+    const referrer = document.referrer;
+    const referrerPage = referrer.substring(referrer.lastIndexOf('/') + 1);
+    if (!forbiddenPages.includes(referrerPage)) {
+      window.history.back();
+    } else {
+      window.location.href = '/index.html';
+    }
+  ">
+    <span class="text">Back!</span>
+    <span class="icon-Container">
+      <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="1.61321" cy="1.61321" r="1.5" fill="black"></circle>
+        <circle cx="5.73583" cy="1.61321" r="1.5" fill="black"></circle>
+        <circle cx="5.73583" cy="5.5566" r="1.5" fill="black"></circle>
+        <circle cx="9.85851" cy="5.5566" r="1.5" fill="black"></circle>
+        <circle cx="9.85851" cy="9.5" r="1.5" fill="black"></circle>
+        <circle cx="13.9811" cy="9.5" r="1.5" fill="black"></circle>
+        <circle cx="5.73583" cy="13.4434" r="1.5" fill="black"></circle>
+        <circle cx="9.85851" cy="13.4434" r="1.5" fill="black"></circle>
+        <circle cx="1.61321" cy="17.3868" r="1.5" fill="black"></circle>
+        <circle cx="5.73583" cy="17.3868" r="1.5" fill="black"></circle>
+      </svg>
+    </span>
+  </button>
+
+
+  <footer>
+    <a href="https://ryhox.dev/privacy-policy" id="privacy-link">Privacy Policy</a>
+    <p>Copyright 2025 ryhox.dev</p>
+    <div class="contact-links">
+      <a href="mailto:contact@ryhox.dev"><i class="fas fa-envelope"></i></a>
+      <a href="https://github.com/ryhox" target="_blank"><i class="fab fa-github"></i></a>
+      <a href="https://discordapp.com/users/Ryhox" target="_blank"><i class="fab fa-discord"></i></a>
+    </div>
+  </footer>
+
+  <script src="/assets/js/stats.js"></script>
+    <script src="/assets/js/leaderboard.js"></script>
+  <script src="/assets/js/maincharacter.js"></script>
+</body>
+</html>

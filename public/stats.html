@@ -12,7 +12,9 @@
 </head>
 <body>
   <header>
+    <a href="/index.html" style="text-decoration: none;">
     <div class="header-title">RYHOX.DEV</div>
+    </a>
     <div class="header-subtitle">STATS</div>
     <div class="user-menu-wrapper" id="userMenuWrapper">
       <div class="user-icon" id="userIcon" style="display:none;"><i class="fas fa-user-circle"></i></div>
@@ -59,26 +61,58 @@
         </div>
         <div class="search-overlay"></div>
       </div>
-
+        OR 
+      <a href="/leaderboard.html">
+        <button class="searchUserBttn" >
+  <span>
+     See Leaderboard<i class="fas fa-medal"></i>
+  </span>
+</button>
+</a>
       <div class="landing-info-cards">
         <div class="info-cardlanding">
           <div class="info-iconlanding"><i class="fas fa-globe"></i></div>
-          <div class="info-labellanding">0 registered Players</div>
+          <div class="info-labellanding" id="globalPlayers">0 registered Players</div>
         </div>
         <div class="info-cardlanding">
           <div class="info-iconlanding"><i class="fas fa-gamepad"></i></div>
-          <div class="info-labellanding">0 Games Playes</div>
+          <div class="info-labellanding" id="globalGames">0 Games Played</div>
         </div>
         <div class="info-cardlanding">
           <div class="info-iconlanding"><i class="fas fa-clock"></i></div>
-          <div class="info-labellanding">0s Average Time</div>
+          <div class="info-labellanding" id="globalAvgTime">0s Average Time</div>
         </div>
       </div>
     </div>
 
-    <!-- Real User Stats -->
     <div id="statsView" style="display: none;">
-      <h1><span id="username">USER</span></h1>
+          <a href="/stats.html">
+<button class="searchUserBttn" >
+  <span>
+    Search Users
+    <svg
+      viewBox="0 0 19.9 19.7"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-labelledby="title desc"
+      class="svg-icon search-icon"
+    >
+      <title>Search Icon</title>
+      <desc id="desc">A magnifying glass icon.</desc>
+      <g stroke="white" fill="none" class="search-path">
+        <path d="M18.5 18.3l-5.4-5.4" stroke-linecap="square"></path>
+        <circle r="7" cy="8" cx="8"></circle>
+      </g>
+    </svg>
+  </span>
+</button>
+</a>
+      <h1 class="stats-profile-title">
+        <span id="profileUsername"></span> <br>
+        <span id="timeFilterDisplay" class="time-filter-text"></span>
+
+      </h1>
+      
       <div class="stats-selection">
         <div class="mode-selection">
           <button class="mode-btn active" data-mode="multiplayer">Multiplayer</button>
@@ -105,6 +139,20 @@
           <div class="sectionProfile-content">
             <div class="stats-grid">
               <div class="info-card">
+                <div class="info-icon"><i class="fas fa-medal"></i></div>
+                <div class="info-content">
+                  <div class="info-label">Leaderboard Position</div>
+                  <div class="info-value">N/A</div>
+                </div>
+              </div>
+              <div class="info-card">
+                <div class="info-icon"><i class="fas fa-percentage"></i></div>
+                <div class="info-content">
+                  <div class="info-label">Win Rate</div>
+                  <div class="info-value">N/A</div>
+                </div>
+              </div>
+              <div class="info-card">
                 <div class="info-icon"><i class="fas fa-trophy"></i></div>
                 <div class="info-content">
                   <div class="info-label">Current Win Streak</div>
@@ -119,23 +167,9 @@
                 </div>
               </div>
               <div class="info-card">
-                <div class="info-icon"><i class="fas fa-percentage"></i></div>
-                <div class="info-content">
-                  <div class="info-label">Win Rate</div>
-                  <div class="info-value">N/A</div>
-                </div>
-              </div>
-              <div class="info-card">
                 <div class="info-icon"><i class="fas fa-stopwatch"></i></div>
                 <div class="info-content">
                   <div class="info-label">Average Time</div>
-                  <div class="info-value">N/A</div>
-                </div>
-              </div>
-              <div class="info-card">
-                <div class="info-icon"><i class="fas fa-medal"></i></div>
-                <div class="info-content">
-                  <div class="info-label">Leaderboard Position</div>
                   <div class="info-value">N/A</div>
                 </div>
               </div>
@@ -172,6 +206,13 @@
           <div class="sectionProfile-content">
             <div class="stats-grid">
               <div class="info-card">
+                <div class="info-icon"><i class="fas fa-medal"></i></div>
+                <div class="info-content">
+                  <div class="info-label">Leaderboard Position</div>
+                  <div class="info-value">N/A</div>
+                </div>
+              </div>
+              <div class="info-card">
                 <div class="info-icon"><i class="fas fa-stopwatch"></i></div>
                 <div class="info-content">
                   <div class="info-label">Fastest Time</div>
@@ -186,23 +227,9 @@
                 </div>
               </div>
               <div class="info-card">
-                <div class="info-icon"><i class="fas fa-medal"></i></div>
-                <div class="info-content">
-                  <div class="info-label">Leaderboard Position</div>
-                  <div class="info-value">N/A</div>
-                </div>
-              </div>
-              <div class="info-card">
                 <div class="info-icon"><i class="fas fa-gamepad"></i></div>
                 <div class="info-content">
                   <div class="info-label">Games Played</div>
-                  <div class="info-value">N/A</div>
-                </div>
-              </div>
-              <div class="info-card">
-                <div class="info-icon"><i class="fas fa-bomb"></i></div>
-                <div class="info-content">
-                  <div class="info-label">Mines Hit</div>
                   <div class="info-value">N/A</div>
                 </div>
               </div>
@@ -220,6 +247,13 @@
                   <div class="info-value">N/A</div>
                 </div>
               </div>
+              <div class="info-card">
+                <div class="info-icon"><i class="fas fa-bomb"></i></div>
+                <div class="info-content">
+                  <div class="info-label">Mines Hit</div>
+                  <div class="info-value">N/A</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -231,13 +265,6 @@
           </div>
           <div class="sectionProfile-content">
             <div class="stats-grid">
-              <div class="info-card">
-                <div class="info-icon"><i class="fas fa-trophy"></i></div>
-                <div class="info-content">
-                  <div class="info-label">Total Games Played</div>
-                  <div class="info-value">N/A</div>
-                </div>
-              </div>
               <div class="info-card">
                 <div class="info-icon"><i class="fas fa-percentage"></i></div>
                 <div class="info-content">
@@ -260,9 +287,9 @@
                 </div>
               </div>
               <div class="info-card">
-                <div class="info-icon"><i class="fas fa-bomb"></i></div>
+                <div class="info-icon"><i class="fas fa-trophy"></i></div>
                 <div class="info-content">
-                  <div class="info-label">Total Mines Hit</div>
+                  <div class="info-label">Total Games Played</div>
                   <div class="info-value">N/A</div>
                 </div>
               </div>
@@ -270,6 +297,13 @@
                 <div class="info-icon"><i class="fas fa-star"></i></div>
                 <div class="info-content">
                   <div class="info-label">Total Wins</div>
+                  <div class="info-value">N/A</div>
+                </div>
+              </div>
+              <div class="info-card">
+                <div class="info-icon"><i class="fas fa-bomb"></i></div>
+                <div class="info-content">
+                  <div class="info-label">Total Mines Hit</div>
                   <div class="info-value">N/A</div>
                 </div>
               </div>

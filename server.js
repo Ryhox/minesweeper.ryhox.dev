@@ -31,7 +31,7 @@ const io = socketIo(server, {
 
 
 
-//rename cooldown for ACCOUNT
+//rename cooldown for 
 const RENAME_COOLDOWN_DAYS = 0; 
 
 
@@ -50,6 +50,27 @@ const lobbies = {};
 const playerSessions = {};
 const lobbyTimeouts = {};
 
+
+function getUidFromSocketId(socketId) {
+  return playerSessions[socketId]?.uid;
+}
+
+function saveGameResult(uid, result) {
+  if (!uid) return;
+  const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
+  if (!fs.existsSync(userFile)) return;
+
+  try {
+    const userData = JSON.parse(fs.readFileSync(userFile, 'utf8'));
+    if (!userData.gameHistory) {
+      userData.gameHistory = [];
+    }
+    userData.gameHistory.push(result);
+    fs.writeFileSync(userFile, JSON.stringify(userData, null, 2), 'utf8');
+  } catch (err) {
+    console.error(`Failed to save game result for UID ${uid}:`, err);
+  }
+}
 
 function generateLobbyCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -166,20 +187,98 @@ app.get('/lobby/:code', (req, res) => {
 });
 
 app.get('/api/lobbies', (req, res) => {
-  const activeLobbies = Object.values(lobbies)
-    .filter(lobby => lobby.status === 'waiting')
-    .map(lobby => ({
-      code: lobby.code,
-      host: lobby.host.name,
-      players: lobby.users.length,
-      maxPlayers: lobby.maxPlayers,
-      difficulty: lobby.difficulty
-    }));
-  
-  res.json(activeLobbies);
+  res.json(Object.values(lobbies).map(l => ({ code: l.code, players: l.users.length, maxPlayers: l.maxPlayers, difficulty: l.difficulty })));
+});
+
+app.get('/api/getLeaderboard', (req, res) => {
+    const { type = 'multiplayer', timeRange: timeRangeQuery = 'all' } = req.query;
+    const timeRange = (timeRangeQuery && timeRangeQuery !== 'all') ? parseInt(timeRangeQuery, 10) : null;
+
+    try {
+        const userFiles = fs.readdirSync(USER_DATA_DIR);
+        let leaderboardData = [];
+
+        for (const file of userFiles) {
+            const rawData = fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf-8');
+            const userData = JSON.parse(rawData);
+            let gameHistory = userData.gameHistory || [];
+
+            if (timeRange) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - timeRange);
+                gameHistory = gameHistory.filter(game => new Date(game.timestamp) >= cutoffDate);
+            }
+
+            if (type === 'multiplayer') {
+                const wins = gameHistory.filter(g => g.type === 'multiplayer' && g.won).length;
+                if (wins > 0) {
+                    leaderboardData.push({ username: userData.username, value: wins });
+                }
+            } else if (type === 'singleplayer') {
+                const winningGames = gameHistory.filter(g => g.type === 'singleplayer' && g.won && g.time != null);
+                if (winningGames.length > 0) {
+                    const bestTime = Math.min(...winningGames.map(g => g.time));
+                    leaderboardData.push({ username: userData.username, value: bestTime });
+                }
+            }
+        }
+
+        if (type === 'multiplayer') {
+            leaderboardData.sort((a, b) => b.value - a.value); // Sort by wins descending
+        } else {
+            leaderboardData.sort((a, b) => a.value - b.value); // Sort by time ascending
+        }
+
+        const rankedData = leaderboardData.slice(0, 50).map((player, index) => ({
+            rank: index + 1,
+            ...player
+        }));
+
+        res.json(rankedData);
+
+    } catch (err) {
+        console.error('Failed to get leaderboard:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/api/getGlobalStats', (req, res) => {
+    try {
+        const userFiles = fs.readdirSync(USER_DATA_DIR);
+        const totalPlayers = userFiles.length;
+        let totalGamesPlayed = 0;
+        let totalTime = 0;
+        let totalWins = 0;
+
+        for (const file of userFiles) {
+            const rawData = fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf-8');
+            const userData = JSON.parse(rawData);
+            const gameHistory = userData.gameHistory || [];
+            
+            totalGamesPlayed += gameHistory.length;
+
+            const winningGames = gameHistory.filter(g => g.won && g.time != null);
+            totalWins += winningGames.length;
+            totalTime += winningGames.reduce((sum, g) => sum + g.time, 0);
+        }
+
+        const averageTime = totalWins > 0 ? (totalTime / totalWins).toFixed(0) : 0;
+
+        res.json({
+            totalPlayers,
+            totalGamesPlayed,
+            averageTime
+        });
+
+    } catch (err) {
+        console.error('Failed to get global stats:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+
 socket.on('authInit', async ({ token }) => {
     try {
       const decoded = await admin.auth().verifyIdToken(token);
@@ -241,7 +340,11 @@ socket.on('createLobby', ({ difficulty, playerCount }) => {
   
   lobbies[code] = lobby;
   
-  playerSessions[socket.id] = { name: hostName, lobby: code };
+  if (playerSessions[socket.id]) {
+    playerSessions[socket.id].lobby = code;
+  } else {
+    playerSessions[socket.id] = { name: hostName, lobby: code };
+  }
   socket.join(code);
   socket.emit('lobbyCreated', code);
 });
@@ -259,7 +362,8 @@ socket.on('createLobby', ({ difficulty, playerCount }) => {
       return;
     }
     
-    if (lobby.users.some(user => user.name === name)) {
+    const playerName = playerSessions[socket.id]?.name || name;
+    if (lobby.users.some(user => user.name === playerName)) {
       socket.emit('lobbyError', 'Name taken');
       return;
     }
@@ -282,8 +386,12 @@ socket.on('createLobby', ({ difficulty, playerCount }) => {
     }
   }
 
-    playerSessions[socket.id] = { name, lobby: code };
-    lobby.users.push({ id: socket.id, name, ready: false });
+    if (playerSessions[socket.id]) {
+        playerSessions[socket.id].lobby = code;
+    } else {
+        playerSessions[socket.id] = { name: playerName, lobby: code };
+    }
+    lobby.users.push({ id: socket.id, name: playerName, ready: false });
     socket.join(code);
     
     io.to(code).emit('updateUsers', lobby.users);
@@ -779,92 +887,129 @@ if (lobby.users.length === 0 && lobby.status !== 'playing') {
 
 function checkGameCompletion(lobby) {
     const allPlayers = lobby.users;
-    const alivePlayers = allPlayers.filter(user => {
-    const state = lobby.gameState.playerStates[user.id];
-    return state && state.status === 'alive';
-  });
-  
-  if (alivePlayers.length === 1 && allPlayers.length === 1) {
-    const winner = alivePlayers[0];
-    const winnerState = lobby.gameState.playerStates[winner.id];
-    winnerState.status = 'finished';
-    winnerState.endTime = Date.now();
-    winnerState.time = Math.floor(
-      (winnerState.endTime - winnerState.startTime - winnerState.pausedDuration) / 1000
-    );
-    
-    io.to(lobby.code).emit('playerStatusChanged', {
-      playerId: winner.id,
-      status: 'finished'
-    });
-  }
+    const playerStates = lobby.gameState.playerStates;
 
     const gameCompleted = allPlayers.every(user => {
-      const state = lobby.gameState.playerStates[user.id];
-      return state && (state.status === 'dead' || state.status === 'finished' || state.status === 'disconnected');
+        const state = playerStates[user.id];
+        return state && (state.status === 'dead' || state.status === 'finished' || state.status === 'disconnected');
     });
 
     if (gameCompleted) {
-      const results = allPlayers.map(user => {
-        const state = lobby.gameState.playerStates[user.id];
-        let baseTime = 0;
-        
-  if (state) {
-    if (state.status === 'dead' || state.status === 'finished') {
-      baseTime = Math.floor(
-        (state.endTime - state.startTime - state.pausedDuration) / 1000
-      );
-    } 
-    else if (state.status === 'disconnected') {
-      baseTime = Math.floor(
-        (Date.now() - state.startTime - state.pausedDuration) / 1000
-      );
-          }
-        }
+        const currentPlayersInLobby = allPlayers.map(p => p.id);
+        const results = Object.entries(playerStates)
+            .filter(([playerId, state]) => currentPlayersInLobby.includes(playerId))
+            .map(([playerId, state]) => {
+                const playerName = playerSessions[playerId]?.name || 'Player';
+                let baseTime = 0;
+                
+                if (state.status === 'dead' || state.status === 'finished') {
+                    baseTime = Math.floor((state.endTime - state.startTime - state.pausedDuration) / 1000);
+                } else if (state.status === 'disconnected') {
+                    baseTime = Math.floor((Date.now() - state.startTime - state.pausedDuration) / 1000);
+                }
 
-        const penalty = lobby.penalties[user.id] ? 
-          Math.floor(lobby.penalties[user.id] / 1000) : 0;
-        
-        return {
-          id: user.id,
-          name: user.name,
-          status: state?.status === 'finished' ? 'winner' : 'loser',
-          time: baseTime + penalty,
-          penalty: penalty,
-          progress: state?.progress || 0
-        };
-      });
+                const penalty = lobby.penalties[playerId] ? Math.floor(lobby.penalties[playerId] / 1000) : 0;
+                const totalTime = baseTime + penalty;
+                
+                return {
+                    id: playerId,
+                    name: playerName,
+                    boardStatus: state.status,
+                    time: totalTime,
+                    penalty: penalty,
+                    progress: state.progress || 0,
+                    baseTime: baseTime,
+                    totalTime: totalTime
+                };
+            });
 
-      io.to(lobby.code).emit('gameOver', { results, grid: lobby.gameState.grid });
-      lobby.status = 'completed';
+        // DEbug console.log('Game completion results:', JSON.stringify(results, null, 2));
+
+let winnerIds = new Set();
+
+if (results.length > 0) {
+    const bestProgress = Math.max(...results.map(r => r.progress));
+    console.log('Best progress:', bestProgress);
+    
+    const topProgressPlayers = results.filter(r => r.progress === bestProgress);
+    console.log('Top progress players:', topProgressPlayers.map(p => ({ name: p.name, progress: p.progress, time: p.time })));
+    
+    if (topProgressPlayers.length === 1) {
+        winnerIds.add(topProgressPlayers[0].id);
+        console.log('Single winner by progress:', topProgressPlayers[0].name);
     } else {
-      const finishedPlayers = allPlayers.filter(user => {
-        const state = lobby.gameState.playerStates[user.id];
-        return state && state.status === 'finished';
-      });
-
-      const playingPlayers = allPlayers.filter(user => {
-        const state = lobby.gameState.playerStates[user.id];
-        return state && state.status === 'alive';
-      });
-
-      if (finishedPlayers.length > 0 || playingPlayers.length > 0) {
-        io.to(lobby.code).emit('intermediatePodium', {
-          finishedPlayers: finishedPlayers.map(user => ({
-            id: user.id,
-            name: user.name,
-            status: 'winner',
-            time: lobby.gameState.playerStates[user.id]?.time,
-            progress: lobby.gameState.playerStates[user.id]?.progress
-          })),
-          playingPlayers: playingPlayers.map(user => ({
-            id: user.id,
-            name: user.name
-          }))
+        const bestTime = Math.min(...topProgressPlayers.map(p => p.time));
+        console.log('Tiebreaker - best time:', bestTime);
+        
+        topProgressPlayers.forEach(p => {
+            if (p.time === bestTime) {
+                winnerIds.add(p.id);
+                console.log('Tiebreaker winner:', p.name, 'time:', p.time);
+            }
         });
-      }
     }
-  }
+} else {
+    console.log('No players in results');
+}
+
+const finalResults = results.map(r => ({
+    ...r,
+    status: winnerIds.has(r.id) ? 'winner' : 'loser',
+    won: winnerIds.has(r.id)
+}));
+
+        io.to(lobby.code).emit('gameOver', { results: finalResults, grid: lobby.gameState.grid });
+        lobby.status = 'completed';
+
+        const gameData = {
+            type: 'multiplayer',
+            difficulty: lobby.gameState.difficulty,
+            players: allPlayers.length,
+            timestamp: new Date().toISOString()
+        };
+
+        finalResults.forEach(playerResult => {
+            const uid = getUidFromSocketId(playerResult.id);
+            if (uid) {
+                const resultToSave = {
+                    ...gameData,
+                    won: playerResult.won,
+                    time: playerResult.time,
+                    progress: playerResult.progress
+                };
+                console.log('Saving result for', playerResult.name, 'won:', playerResult.won, 'time:', playerResult.time);
+                saveGameResult(uid, resultToSave);
+            }
+        });
+
+    } else {
+        const finishedPlayers = allPlayers.filter(user => {
+            const state = lobby.gameState.playerStates[user.id];
+            return state && state.status === 'finished';
+        });
+
+        const playingPlayers = allPlayers.filter(user => {
+            const state = lobby.gameState.playerStates[user.id];
+            return state && state.status === 'alive';
+        });
+
+        if (finishedPlayers.length > 0 || playingPlayers.length > 0) {
+            io.to(lobby.code).emit('intermediatePodium', {
+                finishedPlayers: finishedPlayers.map(user => ({
+                    id: user.id,
+                    name: user.name,
+                    status: 'winner',
+                    time: lobby.gameState.playerStates[user.id]?.time,
+                    progress: lobby.gameState.playerStates[user.id]?.progress
+                })),
+                playingPlayers: playingPlayers.map(user => ({
+                    id: user.id,
+                    name: user.name
+                }))
+            });
+        }
+    }
+}
 });
 
 
@@ -878,27 +1023,25 @@ if (!fs.existsSync(USER_DATA_DIR)) {
 
 
 app.get('/stats/:username', (req, res) => {
-    const username = req.params.username;
     res.sendFile(path.join(__dirname, 'public', 'stats.html'));
 });
 
-app.get('/api/getStats/:username', (req, res) => {
+app.get('/api/getStats/:username', async (req, res) => {
     const username = req.params.username.toLowerCase();
+    const timeRangeQuery = req.query.timeRange;
+    const timeRange = (timeRangeQuery && timeRangeQuery !== 'all') ? parseInt(timeRangeQuery, 10) : null;
 
-    fs.readdir(USER_DATA_DIR, (err, files) => {
-        if (err) {
-            console.error('Failed to read user data dir:', err);
-            return res.status(500).json({ error: 'Server error' });
-        }
-
-        const jsonFiles = files.filter(f => f.endsWith('.json'));
-
+    try {
+        const userFiles = fs.readdirSync(USER_DATA_DIR);
         let foundUserFile = null;
+        let targetUid = null;
 
-        for (const file of jsonFiles) {
-            const data = JSON.parse(fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf-8'));
-            if (data.username && data.username.toLowerCase() === username) {
+        for (const file of userFiles) {
+            const rawData = fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf-8');
+            const userData = JSON.parse(rawData);
+            if (userData.username.toLowerCase() === username) {
                 foundUserFile = path.join(USER_DATA_DIR, file);
+                targetUid = userData.uid;
                 break;
             }
         }
@@ -907,15 +1050,207 @@ app.get('/api/getStats/:username', (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const stats = JSON.parse(fs.readFileSync(foundUserFile, 'utf-8'));
+        const rawData = JSON.parse(fs.readFileSync(foundUserFile, 'utf-8'));
+        const gameHistory = rawData.gameHistory || [];
+
+        let filteredHistory = gameHistory;
+        if (timeRange) {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - timeRange);
+            filteredHistory = gameHistory.filter(game => new Date(game.timestamp) >= cutoffDate);
+        }
+
+        const stats = calculateStatsFromHistory(filteredHistory);
+        const ranks = await getLeaderboardRanks(targetUid, timeRange);
+
+        stats.multiplayer.leaderboardPosition = ranks.multiplayerRank;
+        stats.singleplayer.leaderboardPosition = ranks.singleplayerRank;
 
         res.json({
-            username: stats.username,
-            multiplayer: stats.multiplayer || {},    
-            singleplayer: stats.singleplayer || {},
-            combined: stats.combined || {}
+            username: rawData.username,
+            ...stats
         });
-    });
+
+    } catch (err) {
+        console.error('Failed to get stats:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+async function getLeaderboardRanks(targetUid, timeRange) {
+    const userFiles = fs.readdirSync(USER_DATA_DIR);
+    const allUsersStats = [];
+
+    for (const file of userFiles) {
+        try {
+            const rawData = fs.readFileSync(path.join(USER_DATA_DIR, file), 'utf-8');
+            const userData = JSON.parse(rawData);
+            const gameHistory = userData.gameHistory || [];
+
+            let filteredHistory = gameHistory;
+            if (timeRange) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - timeRange);
+                filteredHistory = gameHistory.filter(game => new Date(game.timestamp) >= cutoffDate);
+            }
+
+            const multiplayerGames = filteredHistory.filter(g => g.type === 'multiplayer');
+            const singleplayerGames = filteredHistory.filter(g => g.type === 'singleplayer' && g.won);
+
+            const mpWins = multiplayerGames.length;
+            
+            let spBestTime = Infinity;
+            if (singleplayerGames.length > 0) {
+                spBestTime = Math.min(...singleplayerGames.map(g => g.time));
+            }
+
+            allUsersStats.push({
+                uid: userData.uid,
+                mpWins,
+                spBestTime
+            });
+        } catch (err) {
+            console.error(`Error processing file ${file} for leaderboards:`, err);
+        }
+    }
+
+    const mpLeaderboard = [...allUsersStats].sort((a, b) => b.mpWins - a.mpWins);
+    
+    const spLeaderboard = [...allUsersStats]
+        .filter(u => u.spBestTime !== Infinity)
+        .sort((a, b) => a.spBestTime - b.spBestTime);
+
+    const mpRank = mpLeaderboard.findIndex(u => u.uid === targetUid && u.mpWins > 0);
+    const spRank = spLeaderboard.findIndex(u => u.uid === targetUid);
+
+    return {
+        multiplayerRank: mpRank !== -1 ? `#${mpRank + 1}` : 'N/A',
+        singleplayerRank: spRank !== -1 ? `#${spRank + 1}` : 'N/A'
+    };
+}
+
+
+function calculateStatsFromHistory(history) {
+    const multiplayer = history.filter(g => g.type === 'multiplayer');
+    const singleplayer = history.filter(g => g.type === 'singleplayer');
+
+    multiplayer.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    const calc = (games) => {
+        if (games.length === 0) return { gamesPlayed: 0, wins: 0, losses: 0, winRate: '0%', avgTime: 'N/A', bestTime: 'N/A' };
+        const wins = games.filter(g => g.won).length;
+        const losses = games.length - wins;
+        const winRate = ((wins / games.length) * 100).toFixed(1) + '%';
+        
+        const winningGames = games.filter(g => g.won);
+        const totalTime = winningGames.reduce((sum, g) => sum + g.time, 0);
+        const avgTime = winningGames.length > 0 ? (totalTime / winningGames.length).toFixed(2) + 's' : 'N/A';
+        
+        const bestTime = winningGames.length > 0 ? Math.min(...winningGames.map(g => g.time)) + 's' : 'N/A';
+
+        return {
+            gamesPlayed: games.length,
+            wins,
+            losses,
+            winRate,
+            avgTime,
+            bestTime: bestTime === 'Infinitys' ? 'N/A' : bestTime
+        };
+    };
+
+    const mpStats = calc(multiplayer);
+    const spStats = calc(singleplayer);
+    const combinedStats = calc(history);
+
+    let currentWinStreak = 0;
+    let bestWinStreak = 0;
+    for (const game of multiplayer) {
+        if (game.won) {
+            currentWinStreak++;
+        } else {
+            bestWinStreak = Math.max(bestWinStreak, currentWinStreak);
+            currentWinStreak = 0;
+        }
+    }
+    bestWinStreak = Math.max(bestWinStreak, currentWinStreak); 
+
+    mpStats.currentWinStreak = currentWinStreak;
+    mpStats.bestWinStreak = bestWinStreak;
+    mpStats.leaderboardPosition = 'N/A';
+
+    spStats.fastestTime = spStats.bestTime;
+    spStats.leaderboardPosition = 'N/A';
+    spStats.minesHit = spStats.losses;
+    spStats.completedGames = spStats.wins;
+    spStats.failedGames = spStats.losses;
+
+    combinedStats.totalGamesPlayed = combinedStats.gamesPlayed;
+    combinedStats.overallWinRate = combinedStats.winRate;
+    combinedStats.bestTimeAnyMode = combinedStats.bestTime;
+    combinedStats.averageTime = combinedStats.avgTime;
+    const multiplayerLosses = multiplayer.filter(g => !g.won).length;
+    combinedStats.totalMinesHit = multiplayerLosses + spStats.losses;
+    combinedStats.totalWins = combinedStats.wins;
+    combinedStats.daysPlayed = new Set(history.map(g => g.timestamp.split('T')[0])).size;
+
+
+    return {
+        multiplayer: {
+            currentWinStreak: mpStats.currentWinStreak,
+            bestWinStreak: mpStats.bestWinStreak,
+            winRate: mpStats.winRate,
+            averageTime: mpStats.avgTime,
+            leaderboardPosition: mpStats.leaderboardPosition,
+            gamesPlayed: mpStats.gamesPlayed,
+            wins: mpStats.wins,
+            losses: mpStats.losses,
+        },
+        singleplayer: {
+            fastestTime: spStats.fastestTime,
+            averageTime: spStats.avgTime,
+            leaderboardPosition: spStats.leaderboardPosition,
+            gamesPlayed: spStats.gamesPlayed,
+            minesHit: spStats.losses,
+            completedGames: spStats.wins,
+            failedGames: spStats.losses,
+        },
+        combined: {
+            totalGamesPlayed: combinedStats.totalGamesPlayed,
+            overallWinRate: combinedStats.overallWinRate,
+            bestTimeAnyMode: combinedStats.bestTimeAnyMode,
+            averageTime: combinedStats.avgTime,
+            totalMinesHit: combinedStats.totalMinesHit,
+            totalWins: combinedStats.totalWins,
+            daysPlayed: combinedStats.daysPlayed,
+        }
+    };
+}
+
+
+app.post('/api/saveSoloGame', async (req, res) => {
+    const { token, result } = req.body;
+    if (!token || !result) {
+        return res.status(400).json({ message: 'Missing data' });
+    }
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(token);
+        const uid = decoded.uid;
+
+        const gameResult = {
+            type: 'singleplayer',
+            won: result.won,
+            time: result.time,
+            difficulty: `${result.width}x${result.height}, ${result.mines} mines`,
+            timestamp: new Date().toISOString()
+        };
+
+        saveGameResult(uid, gameResult);
+        res.json({ message: 'Game result saved successfully' });
+    } catch (err) {
+        console.error("saveSoloGame error:", err);
+        res.status(401).json({ message: 'Authentication failed' });
+    }
 });
 
 app.post('/api/createUser', (req, res) => {
@@ -1123,7 +1458,6 @@ app.post('/recaptcha', async (req, res) => {
     res.json({ success: false, message: 'Fehler bei Anfrage an Google' });
   }
 });
-
 
 
 const PORT = process.env.PORT || 3000;

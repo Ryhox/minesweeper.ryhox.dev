@@ -15,6 +15,7 @@ body {
   flex-direction: column;
   margin: 0;
   padding: 0;
+   overflow-x: hidden; 
 
 }
 
@@ -99,6 +100,47 @@ h2 {
 }
 
 
+.searchUserBttn {
+  position: relative;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 17px;
+  border-radius: 0.8em;
+  cursor: pointer;
+  border: none;
+  background: #242424;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgb(230, 230, 230);
+  overflow: hidden;
+}
+.searchUserBttn:hover {
+  background: linear-gradient(to right, lightsalmon, lightcoral);
+  color: rgb(230, 230, 230);
+}
+
+.searchUserBttn svg {
+  width: 1.2em;
+  height: 1.2em;
+  margin-left: 0.7em;
+  stroke-width: 2px;
+}
+
+.searchUserBttn span {
+  
+  position: relative;
+  z-index: 10;
+  transition: color 0.4s;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.8em 0.9em 0.8em 1.02em;
+}
+
+
+
+
+.searchUserBttn:active {
+  transform: scale(0.95);
+}
 
 
 @keyframes cardEntrance {
@@ -578,7 +620,7 @@ input::placeholder {
 
 }
 
-header {
+header { 
   text-align: center;
   padding: 2rem 1rem;
 }
@@ -588,8 +630,16 @@ header {
   color: lightgreen;
   text-shadow: 2px 2px #000;
   margin-bottom: 0.5rem;
+  transition: ease-in-out 0.1s;
 }
+.header-title:hover {
+  transform: scale(1.1);
 
+}
+.header-title:active{
+  transform: scale(1.1);
+
+}
 .header-subtitle {
   font-size: 1.8rem;
   color: #fff;
@@ -1892,7 +1942,82 @@ background-color: lightcoral;
     border-color: #007bff;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
+.leaderboard-description {
+  font-size: 1.2rem;
+  color: #ccc;
+  text-align: center;
+  max-width: 600px;
+  margin-bottom: 1rem;
+}
 
+#leaderboardContainer {
+  width: 100%;
+  max-width: 800px;
+  background-color: #1d1d1d;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid #494949;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e0e0e0;
+}
+
+.leaderboard-header, .leaderboard-row {
+  display: grid;
+  grid-template-columns: 1fr 4fr 2fr;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  align-items: center;
+}
+
+.leaderboard-header {
+  color: lightskyblue;
+  font-size: 1rem;
+  border-bottom: 2px solid #494949;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.leaderboard-row {
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.leaderboard-row:hover {
+  background-color: #2a2a2a;
+}
+
+.leaderboard-cell {
+  font-size: 1.1rem;
+}
+
+.leaderboard-cell.rank {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: lightsalmon;
+  text-align: center;
+}
+
+.leaderboard-cell.username {
+  font-weight: 500;
+}
+
+.leaderboard-cell.value {
+  text-align: right;
+}
+
+.leaderboard-loading, .leaderboard-empty {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #aaa;
+}
 @media (max-width: 768px) {
     .stats-selection {
         flex-direction: column;

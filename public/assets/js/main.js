@@ -37,7 +37,6 @@ function waitForUsername() {
     }
   });
 }
-// Auth-State-Änderung
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) return;
 
@@ -113,9 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (backButtonIndex) {
     backButtonIndex.onclick = () => window.location.href = '/';
   }
-  //document.getElementById('backButton').onclick = () => {
-  //  window.location.href = '/lobbycreation.html';
-  //};
+
   const backButton = document.getElementById('backButton');
   if (backButton) {
     backButton.onclick = () => {
@@ -305,17 +302,14 @@ if (window.location.pathname.startsWith('/lobby/')) {
   socket.on('reconnectGameData', reconnectGameHandler);
 
 socket.on('connect', async () => {
-  const previousId = localStorage.getItem('previousSocketId');
+  const inGameSocketId = localStorage.getItem('inGameSocketId');
   const code = window.location.pathname.split('/').pop().toUpperCase();
   const name = await waitForUsername();
-        console.log("Creating lobby with  name4:", name);
 
-  localStorage.setItem('previousSocketId', socket.id);
+  if (inGameSocketId && code && name && validateCode(code)) {
+    console.log("Reconnect check with ID:", inGameSocketId);
 
-  if (previousId && code && name && validateCode(code)) {
-    console.log("Reconnect check:", previousId, socket.id);
-
-    socket.emit('checkPlayerStatus', { playerId: previousId }, (inGame) => {
+    socket.emit('checkPlayerStatus', { playerId: inGameSocketId }, (inGame) => {
       const readyBtn = document.getElementById('readyUp');
       if (!readyBtn) return;
       
@@ -323,11 +317,12 @@ socket.on('connect', async () => {
         readyBtn.textContent = 'Reconnect';
         readyBtn.disabled = false;
         readyBtn.onclick = () => {
-          socket.emit('playerReconnected', { oldId: previousId });
+          socket.emit('playerReconnected', { oldId: inGameSocketId });
           socket.emit('requestReconnectGameData');
           readyBtn.disabled = true;
         };
       } else {
+        localStorage.removeItem('inGameSocketId');
         readyBtn.textContent = 'Ready Up';
         readyBtn.disabled = false;
         readyBtn.onclick = () => socket.emit('readyUp');
@@ -341,7 +336,6 @@ socket.on('connect', async () => {
       readyBtn.onclick = () => socket.emit('readyUp');
     }
   }
-
 });
 
 
@@ -424,6 +418,7 @@ function handleUserLeft(userId) {
 }
 
 function startGameHandler({ grid, rows, cols, mines, initialRevealed, users }) {
+  localStorage.setItem('inGameSocketId', socket.id);
   document.querySelector('.content-box').style.display = 'none';
   const currentUserId = socket.id;
   playerStatus = 'alive';
@@ -554,6 +549,7 @@ function handleProgressUpdate(usersProgress) {
 }
 
 function handleGameOver({ results, grid }) {
+  localStorage.removeItem('inGameSocketId');
   stopTimer();
   if (spectateTimerInterval) clearInterval(spectateTimerInterval);
   revealFullGrid(grid);
@@ -688,6 +684,7 @@ function handlePlayerDisconnected({ playerId, timeout }) {
 }
 
 function reconnectGameHandler(data) {
+  localStorage.setItem('inGameSocketId', socket.id);
   gameTimer.isPaused = data.isPaused;
 
   const oldGameContainer = document.getElementById('gameContainer');

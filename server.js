@@ -224,9 +224,9 @@ app.get('/api/getLeaderboard', (req, res) => {
         }
 
         if (type === 'multiplayer') {
-            leaderboardData.sort((a, b) => b.value - a.value); // Sort by wins descending
+            leaderboardData.sort((a, b) => b.value - a.value);
         } else {
-            leaderboardData.sort((a, b) => a.value - b.value); // Sort by time ascending
+            leaderboardData.sort((a, b) => a.value - b.value);
         }
 
         const rankedData = leaderboardData.slice(0, 50).map((player, index) => ({

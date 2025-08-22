@@ -7,15 +7,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-  firebase.auth().onAuthStateChanged(function(user) {
-    if (user) {
-      userIcon.style.display = 'flex';
-      signInBtn.style.display = 'none';
-      dropdownEmail.textContent = user.displayName || '';
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user) {
+    userIcon.style.display = 'flex';
+    signInBtn.style.display = 'none';
+    dropdownEmail.textContent = user.displayName || '';
 
     const statsBtn = document.getElementById('dropdownStats');
     if (user.displayName) {
-      statsBtn.href = `/stats/${encodeURIComponent(user.displayName)}`;
+      statsBtn.href = `/stats.html`; 
     } else {
       statsBtn.href = '#';
       statsBtn.addEventListener('click', function(e) {
@@ -23,13 +23,27 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('No username set... weird... report it.');
       });
     }
-    } else {
-      userIcon.style.display = 'none';
-      userDropdown.classList.remove('active');
-      signInBtn.style.display = 'inline-block';
-      dropdownEmail.textContent = '';
+
+    const myStatsBtn = document.getElementById("myStatsBtn");
+    if (myStatsBtn) {
+      myStatsBtn.onclick = () => {
+        window.location.href = `/stats/${encodeURIComponent(user.displayName)}`;
+      };
     }
-  });
+    if (myStatsBtn) {
+      myStatsBtn.style.display = 'inline-block'; 
+      myStatsBtn.onclick = () => {
+        window.location.href = `/stats/${encodeURIComponent(user.displayName)}`;
+      };
+    }
+  } else {
+    userIcon.style.display = 'none';
+    userDropdown.classList.remove('active');
+    signInBtn.style.display = 'inline-block';
+    dropdownEmail.textContent = '';
+  }
+});
+
 
   userIcon.addEventListener('click', function(e) {
     userDropdown.classList.toggle('active');

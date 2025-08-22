@@ -100,7 +100,7 @@ h2 {
 }
 
 
-.searchUserBttn {
+.searchUserBttn, .myStatsBttn {
   position: relative;
   font-family: inherit;
   font-weight: 600;
@@ -113,19 +113,26 @@ h2 {
   color: rgb(230, 230, 230);
   overflow: hidden;
 }
+.myStatsBttn {
+    font-size: 17px;
+
+}
 .searchUserBttn:hover {
   background: linear-gradient(to right, lightsalmon, lightcoral);
   color: rgb(230, 230, 230);
 }
-
-.searchUserBttn svg {
+.myStatsBttn:hover {
+  background: linear-gradient(to right, rgb(240, 109, 129), rgb(226, 95, 95));
+  color: rgb(230, 230, 230);
+}
+.searchUserBttn i, .myStatsBttn i {
   width: 1.2em;
   height: 1.2em;
-  margin-left: 0.7em;
+  margin-right: 0.7em;
   stroke-width: 2px;
 }
 
-.searchUserBttn span {
+.searchUserBttn span, .myStatsBttn span {
   
   position: relative;
   z-index: 10;
@@ -133,6 +140,9 @@ h2 {
   display: inline-flex;
   align-items: center;
   padding: 0.8em 0.9em 0.8em 1.02em;
+}
+.myStatsBttn span{
+  padding: 0.6em 0.7em 0.6em 1em;
 }
 
 
@@ -976,14 +986,15 @@ option:focus {
     background: #292929;
     color: lightgreen;
 }
-.dropdown-link.settings:hover {
+.dropdown-link.stats:hover {
     background: #292929;
-    color: #2563eb;
+    color: lightcoral;
 }
 .dropdown-link.logout:hover {
     background: #292929;
     color: #dc2626;
 }
+
 @keyframes pulse {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -1006,7 +1017,84 @@ option:focus {
     0% { opacity: 1; transform: translateY(0); }
     100% { opacity: 0; transform: translateY(-20px); }
   }
-  
+  /* ===== MAIN CONTENT STYLES ===== */
+.containerNameNotFound {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.error-messageNameNotFound {
+    text-align: center;
+    max-width: 600px;
+    padding: 60px 40px;
+    background: #121212;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    position: relative;
+    z-index: 2;
+}
+
+.error-messageNameNotFound::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #ff375f, transparent);
+}
+
+.error-messageNameNotFound h1 {
+    font-size: 120px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #a0a0a0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 20px;
+    letter-spacing: -5px;
+}
+
+.error-messageNameNotFound p {
+    font-size: 18px;
+    color: #a0a0a0;
+    margin-bottom: 40px;
+    font-weight: 400;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    background: #1c1c1e;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 30px;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+
+
+.back-link:hover {
+        background: linear-gradient(135deg, #ff375f, #ff6b9c);
+    border-color: transparent;
+}
+
+
+
   .penalty {
     color: red;
     font-weight: bold;

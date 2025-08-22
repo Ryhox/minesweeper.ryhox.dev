@@ -9,13 +9,16 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="/assets/js/firebase-auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+
 </head>
 <body>
   <header>
     <a href="/index.html" style="text-decoration: none;">
     <div class="header-title">RYHOX.DEV</div>
     </a>
-    <div class="header-subtitle">STATS</div>
+    <div class="header-subtitle">Leaderboard</div>
     <div class="user-menu-wrapper" id="userMenuWrapper">
       <div class="user-icon" id="userIcon" style="display:none;"><i class="fas fa-user-circle"></i></div>
       <div class="user-dropdown" id="userDropdown">
@@ -50,23 +53,9 @@
         See the top 50 players of the game.
       </p>
           <a href="/stats.html">
-<button class="searchUserBttn" style="margin-bottom: 2vh;">
+        <button class="searchUserBttn" style="margin-bottom: 2em;">
   <span>
-    Search Users
-    <svg
-      viewBox="0 0 19.9 19.7"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-labelledby="title desc"
-      class="svg-icon search-icon"
-    >
-      <title>Search Icon</title>
-      <desc id="desc">A magnifying glass icon.</desc>
-      <g stroke="white" fill="none" class="search-path">
-        <path d="M18.5 18.3l-5.4-5.4" stroke-linecap="square"></path>
-        <circle r="7" cy="8" cx="8"></circle>
-      </g>
-    </svg>
+     <i class="fa-solid fa-magnifying-glass"></i>Search Users
   </span>
 </button>
 </a>

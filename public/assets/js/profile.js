@@ -38,7 +38,7 @@ auth.onAuthStateChanged(user => {
             passwordCard.style.display = hasPasswordProvider ? 'flex' : 'none';
         }
     } else {
-        window.location.href = 'login.html';
+        window.location.href = 'login';
     }
 });
 
@@ -90,7 +90,7 @@ auth.onAuthStateChanged(user => {
         });
         
         await user.delete();
-        window.location.href = '/login.html';
+        window.location.href = '/login';
       } catch (err) {
         showErrorAlert('Error deleting account: ' + err.message);
       }

@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const backButton = document.getElementById('backButton');
   if (backButton) {
     backButton.onclick = () => {
-      window.location.href = '/lobbycreation.html';
+      window.location.href = '/lobbycreation';
     };
   }
 });
@@ -138,7 +138,7 @@ if (errorParam) {
   }
 }
 
-if (window.location.pathname === '/lobbycreation.html') {
+if (window.location.pathname === '/lobbycreation') {
   document.addEventListener('DOMContentLoaded', () => {
     const createBtn = document.getElementById('createLobby');
     const joinBtn = document.getElementById('joinLobby');
@@ -359,7 +359,7 @@ socket.on('inGameStatus', (isInGame) => {
 async function handleLobbyError(msg) {
   if (['Lobby not found', 'Lobby full', 'Name taken'].includes(msg)) {
     const name = await waitForUsername() || "";
-    window.location.href = `/lobbycreation.html?error=${encodeURIComponent(msg.toLowerCase().replace(' ', '_'))}&name=${encodeURIComponent(name)}`;
+    window.location.href = `/lobbycreation?error=${encodeURIComponent(msg.toLowerCase().replace(' ', '_'))}&name=${encodeURIComponent(name)}`;
   }
 }
 
@@ -575,7 +575,7 @@ function handleGameOver({ results, grid }) {
     const mainMenuButton = document.getElementById('mainMenuButton');
     if (mainMenuButton) {
       mainMenuButton.onclick = () => {
-        window.location.href = '/lobbycreation.html';
+        window.location.href = '/lobbycreation';
       };
     }
   }

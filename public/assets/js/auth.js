@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const { user } = await auth.signInWithEmailAndPassword(email, password);
           const token = await user.getIdToken();
           setCookie('auth_token', token, 30);
-          window.location.href = '/profile.html';
+          window.location.href = '/profile';
         } catch {
           showErrorAlert('E-Mail or Passwort is wrong');
         }
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
           const token = await user.getIdToken();
           setCookie('auth_token', token, 30);
-          window.location.href = '/profile.html';
+          window.location.href = '/profile';
         } catch (err) {
           console.error('Registration error:', err);
           showErrorAlert('Registration failed: ' + err.message);
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         setCookie('auth_token', token, 30);
-        window.location.href = '/profile.html';
+        window.location.href = '/profile';
 
       } catch (err) {
         showErrorAlert(`${brand} Login failed: ${err.message}`);

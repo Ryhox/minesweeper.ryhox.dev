@@ -12,7 +12,7 @@
 </head>
 <body>
   <header>
-    <a href="/index.html" style="text-decoration: none;">
+    <a href="/" style="text-decoration: none;">
     <div class="header-title">RYHOX.DEV</div>
     </a>
     <div class="header-subtitle">STATS</div>
@@ -29,7 +29,7 @@
           </div>
         </div>
         <div class="dropdown-links">
-          <a href="/profile.html" class="dropdown-link profile">
+          <a href="/profile" class="dropdown-link profile">
             <span>Profile</span>
           </a>
           <a href="#" class="dropdown-link stats" id="dropdownStats">
@@ -40,7 +40,7 @@
           </a>
         </div>
       </div>
-      <a href="/login.html" id="signInBtn" class="sign-in-btn" style="display:none;">Sign In / Sign Up</a>
+      <a href="/login" id="signInBtn" class="sign-in-btn" style="display:none;">Sign In / Sign Up</a>
     </div>
   </header>
 
@@ -68,7 +68,7 @@
   </span>
 </button>
         OR 
-      <a href="/leaderboard.html">
+      <a href="/leaderboard">
         <button class="searchUserBttn" >
   <span>
      <i class="fas fa-medal"></i>See Leaderboard
@@ -92,7 +92,7 @@
     </div>
 
     <div id="statsView" style="display: none;">
-          <a href="/stats.html">
+          <a href="/stats">
         <button class="searchUserBttn" >
   <span>
      <i class="fa-solid fa-magnifying-glass"></i>Search Users
@@ -314,13 +314,13 @@
   </div>
 
   <button id="backButton" class="Btn-Container" onclick="
-    const forbiddenPages = ['lobby.html', 'register.html', 'login.html'];
+    const forbiddenPages = ['lobby', 'register', 'login'];
     const referrer = document.referrer;
     const referrerPage = referrer.substring(referrer.lastIndexOf('/') + 1);
     if (!forbiddenPages.includes(referrerPage)) {
       window.history.back();
     } else {
-      window.location.href = '/index.html';
+      window.location.href = '/';
     }
   ">
     <span class="text">Back!</span>

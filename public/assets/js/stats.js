@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch(url);
             if (!response.ok) {
-                window.location.href = '/namenotfound.html';
+                window.location.href = '/namenotfound';
                 return;
             }
             
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
             console.error('Error fetching stats:', error);
             showErrorAlert('User stats not found');
-            window.location.href = '/namenotfound.html'; 
+            window.location.href = '/namenotfound'; 
         }
     }
 
@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.exists) {
                 window.location.href = `/stats/${encodeURIComponent(query)}`;
             } else {
-                window.location.href = '/namenotfound.html';
+                window.location.href = '/namenotfound';
             }
         } catch (err) {
             console.error('Search error:', err);

@@ -56,8 +56,13 @@
 - added a Leaderboard Page
 - other small fixes
 
+# 22.08.2025
+- Worked on Design
+- bugfixes
+- removed the .html ending
+- added 404 page
+- saved login
+
 # TODO
 
-    1. Save Login in the Cookies
-
-    2. Quality of Life
+    1. Quality of Life

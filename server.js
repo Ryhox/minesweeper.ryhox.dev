@@ -20,7 +20,6 @@ const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
 const app = express();
 const server = http.createServer(app);
 app.use(express.json());
-app.use(express.static('public')); 
 
 const io = socketIo(server, {
   cors: {
@@ -177,8 +176,9 @@ function calculateProgress(gameState, playerState) {
 }
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(express.static(path.join(__dirname, 'public'), {
+  extensions: ['html']
+}));
 app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/assets/images', 'minesweeperlogo.png'));
 });
@@ -1459,6 +1459,10 @@ app.post('/recaptcha', async (req, res) => {
   }
 });
 
+
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => console.log(`Server running on http://localhost:${PORT}`));

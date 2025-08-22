@@ -15,7 +15,7 @@ firebase.auth().onAuthStateChanged(function(user) {
 
     const statsBtn = document.getElementById('dropdownStats');
     if (user.displayName) {
-      statsBtn.href = `/stats.html`; 
+      statsBtn.href = `/stats`; 
     } else {
       statsBtn.href = '#';
       statsBtn.addEventListener('click', function(e) {

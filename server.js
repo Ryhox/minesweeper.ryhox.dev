@@ -32,7 +32,7 @@ const io = socketIo(server, {
 
 
 //rename cooldown for 
-const RENAME_COOLDOWN_DAYS = 0; 
+const RENAME_COOLDOWN_DAYS = 14; 
 
 
 // SETTINGSSSS

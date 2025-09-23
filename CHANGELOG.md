@@ -63,6 +63,9 @@
 - added 404 page
 - saved login
 
+# 23.09.2025
+- had to disable difficulties due to a bug.
+
 # TODO
 
     1. Quality of Life

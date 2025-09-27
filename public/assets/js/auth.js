@@ -11,19 +11,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let oauthLoginInProgress = false;
 
-  function showErrorAlert(msg) {
-    const existing = document.querySelector('.error-notification');
-    if (existing) existing.remove();
-    const div = document.createElement('div');
-    div.className = 'error-notification';
-    div.textContent = msg;
-    document.body.appendChild(div);
-    setTimeout(() => {
-      div.classList.add('fade-out');
-      setTimeout(() => div.remove(), 300);
-    }, 3000);
-  }
-
   function setCookie(name, value, days) {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
@@ -61,32 +48,77 @@ document.addEventListener('DOMContentLoaded', function () {
       const isRegisterPage = !!registerEmailInput && !!registerPasswordInput && !!registerUsernameInput;
 
       if (isLoginPage && !isRegisterPage) {
+        // LOGIN PROCESS
         const email = loginEmailInput.value.trim();
         const password = loginPasswordInput.value.trim();
-        if (!email || !password) return showErrorAlert("Please fill in all fields");
+        
+        if (!email || !password) {
+          showCustomAlert("Bitte fülle alle Felder aus", "error");
+          return;
+        }
+
+        const captchaResponse = grecaptcha.getResponse();
+        if (!captchaResponse) {
+          showCustomAlert("Bitte löse das Captcha", "error");
+          return;
+        }
 
         try {
           const { user } = await auth.signInWithEmailAndPassword(email, password);
           const token = await user.getIdToken();
           setCookie('auth_token', token, 30);
-          window.location.href = '/profile';
-        } catch {
-          showErrorAlert('E-Mail or Passwort is wrong');
+          showCustomAlert("Login erfolgreich!", "success");
+          setTimeout(() => {
+            window.location.href = '/profile';
+          }, 1500);
+        } catch (error) {
+          let errorMessage = "Login fehlgeschlagen!";
+          if (error.code === 'auth/user-not-found') {
+            errorMessage = "Benutzer nicht gefunden!";
+          } else if (error.code === 'auth/wrong-password') {
+            errorMessage = "Falsches Passwort!";
+          } else if (error.code === 'auth/invalid-email') {
+            errorMessage = "Ungültige E-Mail Adresse!";
+          }
+          showCustomAlert(errorMessage, "error");
         }
 
       } else if (isRegisterPage) {
+        // REGISTER PROCESS
         const email = registerEmailInput.value.trim();
         const password = registerPasswordInput.value.trim();
         const username = registerUsernameInput.value.trim();
 
-        if (!email || !password || !username) return showErrorAlert("Please fill in all fields");
+        if (!email || !password || !username) {
+          showCustomAlert("Bitte fülle alle Felder aus", "error");
+          return;
+        }
 
         const captchaResponse = grecaptcha.getResponse();
         if (!captchaResponse) {
-          return showErrorAlert("Please verify that you are not a robot.");
+          showCustomAlert("Bitte löse das Captcha", "error");
+          return;
+        }
+
+        // Username validation
+        if (username.length < 3) {
+          showCustomAlert("Benutzername muss mindestens 3 Zeichen lang sein", "error");
+          return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+          showCustomAlert("Benutzername darf nur Buchstaben, Zahlen und Unterstriche enthalten", "error");
+          return;
+        }
+
+        // Password validation
+        if (password.length < 6) {
+          showCustomAlert("Passwort muss mindestens 6 Zeichen lang sein", "error");
+          return;
         }
 
         try {
+          // Check if username exists
           const checkRes = await fetch('/api/checkUsername', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -95,12 +127,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
           const checkData = await checkRes.json();
           if (checkData.exists) {
-            return showErrorAlert('Username already taken');
+            showCustomAlert('Benutzername ist bereits vergeben', "error");
+            return;
           }
 
+          // Create user
           const { user } = await auth.createUserWithEmailAndPassword(email, password);
           await user.updateProfile({ displayName: username });
 
+          // Create user in database
           await fetch('/api/createUser', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -113,10 +148,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
           const token = await user.getIdToken();
           setCookie('auth_token', token, 30);
-          window.location.href = '/profile';
-        } catch (err) {
-          console.error('Registration error:', err);
-          showErrorAlert('Registration failed: ' + err.message);
+          showCustomAlert("Registrierung erfolgreich!", "success");
+          setTimeout(() => {
+            window.location.href = '/profile';
+          }, 1500);
+
+        } catch (error) {
+          console.error('Registration error:', error);
+          let errorMessage = "Registrierung fehlgeschlagen!";
+          if (error.code === 'auth/email-already-in-use') {
+            errorMessage = "E-Mail Adresse wird bereits verwendet!";
+          } else if (error.code === 'auth/weak-password') {
+            errorMessage = "Passwort ist zu schwach!";
+          } else if (error.code === 'auth/invalid-email') {
+            errorMessage = "Ungültige E-Mail Adresse!";
+          }
+          showCustomAlert(errorMessage, "error");
         }
       }
     });
@@ -131,10 +178,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelectorAll('.signin').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if (oauthLoginInProgress) return;
       oauthLoginInProgress = true;
+
       const brand = btn.querySelector('i')?.classList[1]?.split('-')[1];
       const provider = oauthButtons[brand];
-      if (!provider) return;
+      if (!provider) {
+        oauthLoginInProgress = false;
+        return;
+      }
+
+      showCustomAlert(`${brand} Login wird vorbereitet...`, "info");
 
       try {
         const { user } = await auth.signInWithPopup(provider);
@@ -142,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let currentName = user.displayName || user.email?.split('@')[0] || `user${Math.floor(100000 + Math.random() * 900000)}`;
 
+        // Check if user exists in database
         const userRes = await fetch('/api/getUser', {
           method: 'POST',
           headers: {
@@ -155,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const userData = await userRes.json();
           currentName = userData.username || currentName;
         } else {
+          // Create new user if doesn't exist
           await fetch('/api/createUser', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -166,15 +222,26 @@ document.addEventListener('DOMContentLoaded', function () {
           });
         }
 
+        // Update profile if needed
         if (user.displayName !== currentName) {
           await user.updateProfile({ displayName: currentName });
         }
 
         setCookie('auth_token', token, 30);
-        window.location.href = '/profile';
+        showCustomAlert(`${brand} Login erfolgreich!`, "success");
+        setTimeout(() => {
+          window.location.href = '/profile';
+        }, 1500);
 
-      } catch (err) {
-        showErrorAlert(`${brand} Login failed: ${err.message}`);
+      } catch (error) {
+        console.error('OAuth error:', error);
+        let errorMessage = `${brand} Login fehlgeschlagen!`;
+        if (error.code === 'auth/popup-closed-by-user') {
+          errorMessage = "Login wurde abgebrochen";
+        } else if (error.code === 'auth/popup-blocked') {
+          errorMessage = "Popup wurde blockiert. Bitte erlaube Popups für diese Seite";
+        }
+        showCustomAlert(errorMessage, "error");
         oauthLoginInProgress = false;
       }
     });

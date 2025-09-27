@@ -1,19 +1,36 @@
 function showCustomAlert(msg, type = "error") {
+  console.log("showCustomAlert aufgerufen:", msg, type); // Debug
+  
+  // Alte Benachrichtigungen entfernen
   const existing = document.querySelector('.custom-notification');
-  if (existing) existing.remove();
+  if (existing) {
+    console.log("Alte Benachrichtigung entfernt");
+    existing.remove();
+  }
 
+  // Neue Benachrichtigung erstellen
   const div = document.createElement('div');
   div.className = `custom-notification ${type}`;
   div.textContent = msg;
   document.body.appendChild(div);
+  
+  console.log("Neue Benachrichtigung erstellt");
 
+  // Nach 3.5 Sekunden ausblenden und entfernen
   setTimeout(() => {
     div.classList.add('fade-out');
-    setTimeout(() => div.remove(), 300);
+    setTimeout(() => {
+      if (div.parentNode) {
+        div.remove();
+        console.log("Benachrichtigung entfernt");
+      }
+    }, 300);
   }, 3500);
 }
 
+// Style nur einmal hinzufügen
 if (!document.getElementById('custom-alert-style')) {
+  console.log("Füge Style hinzu");
   const style = document.createElement('style');
   style.id = 'custom-alert-style';
   style.textContent = `
@@ -34,21 +51,42 @@ if (!document.getElementById('custom-alert-style')) {
       opacity: 0.98;
       animation: slideIn 0.3s ease-out;
       border-left: 6px solid #ff4444;
-      display: flex;
-      align-items: center;
-      gap: 10px;
     }
-    .custom-notification.success { border-left-color: #6bff8f; background: #1b2e1b; color: #d7ffd7;}
-    .custom-notification.info { border-left-color: #ffb400; background: #23272f; color: #ffe7b0;}
-    .custom-notification.error { border-left-color: #ff4444; background: #23272f; color: #ffd7d7;}
-    .custom-notification.fade-out { animation: fadeOut 0.3s ease-out forwards; }
+    .custom-notification.success { 
+      border-left-color: #6bff8f; 
+      background: #1b2e1b; 
+      color: #d7ffd7;
+    }
+    .custom-notification.info { 
+      border-left-color: #ffb400; 
+      background: #23272f; 
+      color: #ffe7b0;
+    }
+    .custom-notification.error { 
+      border-left-color: #ff4444; 
+      background: #23272f; 
+      color: #ffd7d7;
+    }
+    .custom-notification.fade-out { 
+      animation: fadeOut 0.3s ease-out forwards; 
+    }
     @keyframes slideIn {
-      from { transform: translateY(100px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+      from { 
+        transform: translateX(100px); 
+        opacity: 0; 
+      }
+      to { 
+        transform: translateX(0); 
+        opacity: 1; 
+      }
     }
     @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
+      from { 
+        opacity: 1; 
+      }
+      to { 
+        opacity: 0; 
+      }
     }
   `;
   document.head.appendChild(style);

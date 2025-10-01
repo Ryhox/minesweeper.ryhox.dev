@@ -80,3 +80,4 @@
     10. Login Page Rework (Change Password on Login [Forgot Password])
     11. Settings Limit (solo)
     12. Rework Flexbox
+    13. emotes (maybe chat)

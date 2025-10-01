@@ -2090,7 +2090,7 @@ background-color: lightcoral;
   font-size: 1.2rem;
   color: #ccc;
   text-align: center;
-  max-width: 600px;
+  align-items: center;
   margin-bottom: 1rem;
 }
 

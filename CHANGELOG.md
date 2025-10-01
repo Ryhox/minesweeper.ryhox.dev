@@ -68,7 +68,7 @@
 
 # TODO
 
-    1. Quality of Life (refrehsh button [Lobby Browse]
+    1. Quality of Life (refresh button [Lobby Browse])
     2. User Limit doesnt work (type in number)
     3. difficulties doesn't Work
     4. Optimize for Mobile 
@@ -76,7 +76,7 @@
     6. Optimize Flexbox (stats)
     7. Max 4 Players
     8. Add Profile Picture
-    9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail)
+    9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
     10. Login Page Rework (Change Password on Login [Forgot Password])
     11. Settings Limit (solo)
     12. Rework Flexbox

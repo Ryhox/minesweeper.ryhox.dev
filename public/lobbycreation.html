@@ -86,6 +86,20 @@
     <input type="number" id="playerCount" min="2" max="4" value="2">
     <button id="confirmCreate">Create Lobby</button>
     <button id="exitmodalD">Cancel</button>
+
+    <script>
+    const input = document.getElementById("playerCount");
+
+    input.addEventListener("input", () => {
+      const min = parseInt(input.min);
+      const max = parseInt(input.max);
+      let val = parseInt(input.value);
+
+      if (isNaN(val)) return;
+      if (val < min) input.value = min;
+      if (val > max) input.value = max;
+    });
+    </script>
   </div>
 </div>
 
@@ -106,6 +120,7 @@
         <a href="https://discordapp.com/users/Ryhox" target="_blank" aria-label="Discord"><i class="fab fa-discord"></i></a>
     </div>
 </footer>
+
 <button id="backButtonIndex" class="Btn-Container">
   <span class="text">Back!</span>
   <span class="icon-Container">
@@ -129,6 +144,7 @@
     </svg>
   </span>
 </button>
+
   <script src="/assets/js/lobbycreation.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/assets/js/main.js"></script>

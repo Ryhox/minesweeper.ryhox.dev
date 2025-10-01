@@ -78,3 +78,5 @@
     8. Add Profile Picture
     9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail)
     10. Login Page Rework (Change Password on Login [Forgot Password])
+    11. Settings Limit (solo)
+    12. Rework Flexbox

@@ -14,38 +14,41 @@
 
 </head>
 <body>
-  <header>
+<header>
     <a href="/" style="text-decoration: none;">
     <div class="header-title">RYHOX.DEV</div>
-    </a>
-    <div class="header-subtitle">Leaderboard</div>
-    <div class="user-menu-wrapper" id="userMenuWrapper">
-      <div class="user-icon" id="userIcon" style="display:none;"><i class="fas fa-user-circle"></i></div>
-      <div class="user-dropdown" id="userDropdown">
+    </a>    <div class="header-subtitle">MINESWEEPER selection</div>
+<div class="user-menu-wrapper" id="userMenuWrapper">
+    <div class="user-icon" id="userIcon" style="display:none;">
+        <img id="headerAvatar" src="/assets/images/minesweeperlogo.png" alt="avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:none;">
+        <i class="fas fa-user-circle" id="headerAvatarFallback" style="font-size:36px;"></i>
+    </div>
+    <div class="user-dropdown" id="userDropdown">
         <div class="dropdown-header">
-          <p class="dropdown-signed">Signed in as</p>
-          <div class="dropdown-user">
-            <div class="dropdown-avatar">
-              <svg fill="currentColor" viewBox="0 0 20 20" class="avatar-svg"><path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path></svg>
+            <p class="dropdown-signed">Signed in as</p>
+            <div class="dropdown-user">
+                <div class="dropdown-avatar">
+                    <img id="dropdownAvatar" src="/assets/images/minesweeperlogo.png" alt="avatar" style="width:56px;height:56px;border-radius:50%;object-fit:cover;display:none;">
+                    <svg fill="currentColor" viewBox="0 0 20 20" class="avatar-svg" id="dropdownAvatarFallback"><path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path></svg>
+                </div>
+                <p class="dropdown-email" id="dropdownEmail"></p>
             </div>
-            <p class="dropdown-email" id="dropdownEmail"></p>
-          </div>
         </div>
         <div class="dropdown-links">
-          <a href="/profile" class="dropdown-link profile">
-            <span>Profile</span>
-          </a>
-          <a href="#" class="dropdown-link stats" id="dropdownStats">
-            <span>Stats</span>
-          </a>
-          <a href="#" class="dropdown-link logout" id="dropdownLogout">
-            <span>Logout</span>
-          </a>
+            <a href="/profile" class="dropdown-link profile">
+                <span>Profile</span>
+            </a>
+            <a href="#" class="dropdown-link stats" id="dropdownStats">
+                <span>Stats</span>
+            </a>
+            <a href="#" class="dropdown-link logout" id="dropdownLogout">
+                <span>Logout</span>
+            </a>
         </div>
-      </div>
-      <a href="/login" id="signInBtn" class="sign-in-btn" style="display:none;">Sign In / Sign Up</a>
     </div>
-  </header>
+    <a href="/login" id="signInBtn" class="sign-in-btn" style="display:none;">Sign In / Sign Up</a>
+</div>
+</header>
 
   <div class="containerprofile">
     <div id="landingPsge">

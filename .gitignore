@@ -7,3 +7,5 @@ userDATA/*
 .env
 
 firebaseServiceAccount.json
+
+profile_pics/

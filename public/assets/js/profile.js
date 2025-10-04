@@ -12,7 +12,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-    let emailVisible = false;
+  let emailVisible = false;
+
+  const avatarInput = document.getElementById('avatarInput');
+  const profileAvatarPreview = document.getElementById('profileAvatarPreview');
+  const headerAvatar = document.getElementById('headerAvatar');
+  const headerAvatarFallback = document.getElementById('headerAvatarFallback');
+  const dropdownAvatar = document.getElementById('dropdownAvatar');
+  const dropdownAvatarFallback = document.getElementById('dropdownAvatarFallback');
 
 auth.onAuthStateChanged(user => {
     if (user) {
@@ -23,7 +30,17 @@ auth.onAuthStateChanged(user => {
             : '';
         statusText.textContent = `Member since: ${memberSince}`;
         usernameSpan.textContent = displayName;
-        usernameInput.value = displayName;
+    usernameInput.value = displayName;
+
+    // try to load profile picture from server (png then jpg)
+    if (user && user.uid) {
+      const picUrlPng = `/profile_pics/${user.uid}.png`;
+      const picUrlJpg = `/profile_pics/${user.uid}.jpg`;
+      fetch(picUrlPng, { method: 'HEAD' }).then(r => {
+        if (r.ok) setAvatar(picUrlPng);
+        else fetch(picUrlJpg, { method: 'HEAD' }).then(r2 => { if (r2.ok) setAvatar(picUrlJpg); });
+      }).catch(() => {});
+    }
 
         emailElem.textContent = maskEmail(email);
 
@@ -168,6 +185,49 @@ saveNameBtn.addEventListener('click', async () => {
             setTimeout(() => div.remove(), 300);
         }, 3000);
     }
+
+  function setAvatar(url) {
+    if (profileAvatarPreview) profileAvatarPreview.src = url;
+    if (headerAvatar) { headerAvatar.src = url; headerAvatar.style.display = 'inline-block'; }
+    if (headerAvatarFallback) headerAvatarFallback.style.display = 'none';
+    if (dropdownAvatar) { dropdownAvatar.src = url; dropdownAvatar.style.display = 'inline-block'; }
+    if (dropdownAvatarFallback) dropdownAvatarFallback.style.display = 'none';
+  }
+
+  if (avatarInput) {
+    avatarInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) return showErrorAlert('Please select an image file');
+
+      const reader = new FileReader();
+      reader.onload = async function(ev) {
+        const dataUrl = ev.target.result;
+        if (profileAvatarPreview) profileAvatarPreview.src = dataUrl;
+
+        const user = firebase.auth().currentUser;
+        if (!user) return showErrorAlert('Not authenticated');
+
+        try {
+          const token = await user.getIdToken();
+          const res = await fetch('/api/uploadProfilePic', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, image: dataUrl })
+          });
+          const data = await res.json();
+          if (!res.ok) return showErrorAlert(data.error || 'Upload failed');
+
+          setAvatar(data.url + '?v=' + Date.now());
+          showCustomAlert('Profile picture updated');
+        } catch (err) {
+          console.error('Upload error', err);
+          showErrorAlert('Upload failed: ' + err.message);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
     const style = document.createElement('style');
     style.textContent = `

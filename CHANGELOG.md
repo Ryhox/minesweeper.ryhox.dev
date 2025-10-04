@@ -66,16 +66,17 @@
 # 23.09.2025
 - had to disable difficulties due to a bug.
 
+# 04.10.2025
+- User limit is now fixed and there aer min 2 Players, and max 4 Players
+- Added profile Pictures
+
 # TODO
 
     1. Quality of Life (refresh button [Lobby Browse])
-    2. User Limit doesnt work (type in number)
     3. difficulties doesn't Work
     4. Optimize for Mobile 
     5. Tags (admin)
     6. Optimize Flexbox (stats)
-    7. Max 4 Players
-    8. Add Profile Picture
     9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
     10. Login Page Rework (Change Password on Login [Forgot Password])
     11. Settings Limit (solo)

@@ -16,10 +16,12 @@ require('dotenv').config();
 
 const ROOT_DIR = path.resolve(__dirname);
 const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
+const PROFILE_PICS_DIR = path.join(ROOT_DIR, 'profile_pics');
 
 const app = express();
 const server = http.createServer(app);
-app.use(express.json());
+// allow larger payloads for base64 image uploads
+app.use(express.json({ limit: '10mb' }));
 
 const io = socketIo(server, {
   cors: {
@@ -179,6 +181,11 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public'), {
   extensions: ['html']
 }));
+// serve profile pictures
+if (!fs.existsSync(PROFILE_PICS_DIR)) {
+  fs.mkdirSync(PROFILE_PICS_DIR, { recursive: true });
+}
+app.use('/profile_pics', express.static(PROFILE_PICS_DIR));
 app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/assets/images', 'minesweeperlogo.png'));
 });
@@ -393,8 +400,15 @@ socket.on('createLobby', ({ difficulty, playerCount }) => {
     }
     lobby.users.push({ id: socket.id, name: playerName, ready: false });
     socket.join(code);
-    
-    io.to(code).emit('updateUsers', lobby.users);
+
+    // include uid (if available) when sending user list to clients
+    const usersForClient = lobby.users.map(u => ({
+      id: u.id,
+      name: u.name,
+      ready: u.ready,
+      uid: (playerSessions[u.id] && playerSessions[u.id].uid) ? playerSessions[u.id].uid : null
+    }));
+    io.to(code).emit('updateUsers', usersForClient);
   });
 
   socket.on('checkPlayerStatus', ({ playerId }, callback) => {
@@ -416,8 +430,9 @@ socket.on('createLobby', ({ difficulty, playerCount }) => {
     
     if (userIndex !== -1) {
       const wasReady = lobby.users[userIndex].ready;
-      lobby.users[userIndex].ready = !wasReady;
-      io.to(lobby.code).emit('updateUsers', lobby.users);
+  lobby.users[userIndex].ready = !wasReady;
+  const usersForClient = lobby.users.map(u => ({ id: u.id, name: u.name, ready: u.ready, uid: (playerSessions[u.id] && playerSessions[u.id].uid) ? playerSessions[u.id].uid : null }));
+  io.to(lobby.code).emit('updateUsers', usersForClient);
       
       if (wasReady && lobby.countdownInterval) {
         clearInterval(lobby.countdownInterval);
@@ -792,7 +807,8 @@ if (lobby.users.length === 0 && lobby.status !== 'playing') {
     }
     }, LOBBY_CLEAR_TIME);
       } else {
-        io.to(lobby.code).emit('updateUsers', lobby.users);
+        const usersForClient = lobby.users.map(u => ({ id: u.id, name: u.name, ready: u.ready, uid: (playerSessions[u.id] && playerSessions[u.id].uid) ? playerSessions[u.id].uid : null }));
+        io.to(lobby.code).emit('updateUsers', usersForClient);
         io.to(lobby.code).emit('userLeft', socket.id);
       }
     }
@@ -1278,6 +1294,47 @@ app.post('/api/createUser', (req, res) => {
   } catch (err) {
     console.error('Error writing user file:', err);
     res.status(500).json({ message: 'Error saving user data' });
+  }
+});
+
+// Upload a profile picture (expects { token, image: dataURL })
+app.post('/api/uploadProfilePic', async (req, res) => {
+  const { token, image } = req.body || {};
+  if (!token || !image) return res.status(400).json({ error: 'Missing token or image' });
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    const uid = decoded.uid;
+
+    // Data URL -> extract mime and base64
+    const match = image.match(/^data:(image\/(png|jpeg|jpg));base64,(.+)$/);
+    if (!match) return res.status(400).json({ error: 'Invalid image format' });
+
+    const mime = match[1];
+    const extRaw = match[2];
+    const base64Data = match[3];
+    const ext = (extRaw === 'jpeg' || extRaw === 'jpg') ? 'jpg' : 'png';
+
+    const buffer = Buffer.from(base64Data, 'base64');
+    const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+    if (buffer.length > MAX_BYTES) return res.status(400).json({ error: 'File too large' });
+
+    // ensure dir
+    if (!fs.existsSync(PROFILE_PICS_DIR)) fs.mkdirSync(PROFILE_PICS_DIR, { recursive: true });
+
+    // remove existing images for uid (png/jpg)
+    const pngPath = path.join(PROFILE_PICS_DIR, `${uid}.png`);
+    const jpgPath = path.join(PROFILE_PICS_DIR, `${uid}.jpg`);
+    try { if (fs.existsSync(pngPath)) fs.unlinkSync(pngPath); } catch (e) {}
+    try { if (fs.existsSync(jpgPath)) fs.unlinkSync(jpgPath); } catch (e) {}
+
+    const savePath = path.join(PROFILE_PICS_DIR, `${uid}.${ext}`);
+    fs.writeFileSync(savePath, buffer);
+
+    return res.json({ url: `/profile_pics/${uid}.${ext}` });
+  } catch (err) {
+    console.error('Error uploading profile pic:', err);
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 });
 

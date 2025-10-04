@@ -555,6 +555,15 @@ input::placeholder {
   padding-left: 1rem;
 }
 
+.player-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.player-name-text { font-weight: 600; }
+
 
 
 #readyUp {

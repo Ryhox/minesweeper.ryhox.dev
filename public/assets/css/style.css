@@ -949,7 +949,7 @@ option:focus {
     margin-top: 4px;
 }
 .dropdown-avatar {
-    background: #bfdbfe;
+    /*background: #bfdbfe;*/
     color: #000000;
     border-radius: 50%;
     width: 32px;

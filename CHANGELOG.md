@@ -73,10 +73,12 @@
 # TODO
 
     1. Quality of Life (refresh button [Lobby Browse])
+    2. Multiplayer when one died there should be the name red for everytone and when you made 100% there is you won instead of speactat (button below to spctate)
     3. difficulties doesn't Work
     4. Optimize for Mobile 
     5. Tags (admin)
     6. Optimize Flexbox (stats)
+    7. Add sound
     9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
     10. Login Page Rework (Change Password on Login [Forgot Password])
     11. Settings Limit (solo)

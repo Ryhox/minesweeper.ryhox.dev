@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         messageElement.className = 'message' + (isOwn ? ' own' : ' other');
         let avatarUrl = '/assets/images/icon.png';
         if (data.uid) {
-          avatarUrl = `/profile_pics/${user.uid}.png?v=${Date.now()}`;
+          avatarUrl = `/profile_pics/${data.uid}.png?v=${Date.now()}`;
         }
         const imgTag = `<img class="chat-avatar" 
                     src="${avatarUrl}" 

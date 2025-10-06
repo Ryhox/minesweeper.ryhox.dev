@@ -33,8 +33,8 @@ auth.onAuthStateChanged(user => {
     usernameInput.value = displayName;
 
     if (user && user.uid) {
-      const picUrlPng = `/profile_pics/${user.uid}.png`;
-      const picUrlJpg = `/profile_pics/${user.uid}.jpg`;
+    const picUrlPng = `/profile_pics/${user.uid}.png?v=${Date.now()}`;
+    const picUrlJpg = `/profile_pics/${user.uid}.jpg?v=${Date.now()}`;
       fetch(picUrlPng, { method: 'HEAD' }).then(r => {
         if (r.ok) setAvatar(picUrlPng);
         else fetch(picUrlJpg, { method: 'HEAD' }).then(r2 => { if (r2.ok) setAvatar(picUrlJpg); });

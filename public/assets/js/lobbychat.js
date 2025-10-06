@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         messageElement.textContent = data.message;
       } else {
         messageElement.className = 'message' + (isOwn ? ' own' : ' other');
-        let avatarUrl = '/assets/images/minesweeperlogo.png';
+        let avatarUrl = '/assets/images/icon.png';
         if (data.uid) {
           avatarUrl = `/profile_pics/${data.uid}.png`;
         }

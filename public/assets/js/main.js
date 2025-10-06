@@ -368,7 +368,7 @@ function updatePlayerList(users) {
   if (list) {
     list.innerHTML = users.map(user => {
       const uid = user.uid || '';
-      const imgSrc = uid ? `/profile_pics/${uid}.png` : '/assets/images/icon.png';
+      const imgSrc = uid ? `/profile_pics/${user.uid}.png?v=${Date.now()}` : '/assets/images/icon.png';
       return `
       <li class="${user.ready ? 'ready' : ''}" data-id="${user.id}">
         <img class="player-avatar" src="${imgSrc}" data-uid="${uid}" alt="avatar" onerror="(function(el){ if(el.dataset.uid && el.src.indexOf('.png')!==-1){ el.src='/profile_pics/'+el.dataset.uid+'.jpg'; } else { el.src='/assets/images/icon.png'; } })(this)">

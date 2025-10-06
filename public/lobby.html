@@ -15,28 +15,27 @@
 <script src="/assets/js/alert.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+<script src="./assets/js/alert.js"></script>
 
 </head>
 <body>
-  <div class="container">
 <header>
     <a href="/" style="text-decoration: none;">
     <div class="header-title">RYHOX.DEV</div>
     </a>    <div class="header-subtitle">MINESWEEPER selection</div>
 <div class="user-menu-wrapper" id="userMenuWrapper">
     <div class="user-icon" id="userIcon" style="display:none;">
-        <img id="headerAvatar" src="/assets/images/minesweeperlogo.png" alt="avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:none;">
-        <i class="fas fa-user-circle" id="headerAvatarFallback" style="font-size:36px;"></i>
+        <img id="headerAvatar" src="../assets/images/icon.png" alt="avatar" style="margin-top:0px;width:56px;height:56px;border-radius:50%;object-fit:cover;">
+        <i id="headerAvatarFallback" style="font-size:36px;"></i>
     </div>
     <div class="user-dropdown" id="userDropdown">
         <div class="dropdown-header">
             <p class="dropdown-signed">Signed in as</p>
             <div class="dropdown-user">
                 <div class="dropdown-avatar">
-                    <img id="dropdownAvatar" src="/assets/images/minesweeperlogo.png" alt="avatar" style="width:56px;height:56px;border-radius:50%;object-fit:cover;display:none;">
-                    <svg fill="currentColor" viewBox="0 0 20 20" class="avatar-svg" id="dropdownAvatarFallback"><path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path></svg>
+                    <img id="dropdownAvatar" src="../assets/images/icon.png" alt="avatar" style="margin-top:50px;width:56px;height:56px;border-radius:50%;object-fit:cover;">
                 </div>
-                <p class="dropdown-email" id="dropdownEmail"></p>
+                <p class="dropdown-email" id="dropdownEmail" style="margin-top:50px;"></p>
             </div>
         </div>
         <div class="dropdown-links">
@@ -54,15 +53,38 @@
     <a href="/login" id="signInBtn" class="sign-in-btn" style="display:none;">Sign In / Sign Up</a>
 </div>
 </header>
+  <div class="container">
+
+
+
+  <div class="content-box-centerer">
+
    <div class="content-box">
       <h2>Connected Players</h2>
       <ul id="playerList"></ul>
     <div id="lobbyStatus" class="waiting-message"></div>
     <button id="readyUp">Ready Up</button>
+  </div>
 
   </div>
   </div>
+<div class="chat-container">
+      <div class="chatheader">chat</div>
 
+    <div class="connection-status" id="connection-status" >Connecting...</div>
+  <div class="messages-container" id="messages-container">
+    <div class="loading" id="loading-message">Loading chat...</div>
+
+  </div>
+
+  <div class="input-container">
+    <input type="text" class="message-input" id="message-input" placeholder="Message..." autocomplete="off">
+    <button class="send-button" id="send-button"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+  <div style="font-size: 6px; text-align: center; width: 100%; color: grey; margin-top: 10px;">
+  We are not responsible for this chat
+</div>
+</div>
 <div id="intermediatePodiumModal" class="modal">
   <div class="modal-content">
     <h2>Wait for Other Players to Finish OR spectate</h2>
@@ -88,6 +110,7 @@
     <button id="closeSpectateModal">Close</button>
   </div>
 </div>
+
 <button id="backButtonIndex" class="Btn-Container">
   <span class="text">Back!</span>
   <span class="icon-Container">
@@ -115,6 +138,6 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/assets/js/maincharacter.js"></script>
 <script src="/assets/js/lobbycreation.js" defer></script>
-
+<script src="/assets/js/lobbychat.js" defer></script>
 </body>
 </html>

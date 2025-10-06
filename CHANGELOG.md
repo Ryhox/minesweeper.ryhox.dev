@@ -70,10 +70,17 @@
 - User limit is now fixed and there aer min 2 Players, and max 4 Players
 - Added profile Pictures
 
+# 06.10.2025
+- Maxi feature (like Goolge Minesweeper) Added
+- Settings Limit
+- Chat (emotes)
+- Pictures are now cropped!!!
+
+
 # TODO
 
     1. Quality of Life (refresh button [Lobby Browse])
-    2. Multiplayer when one died there should be the name red for everytone and when you made 100% there is you won instead of speactat (button below to spctate)
+    2. Multiplayer when one died there should be the name red for everyone and when you made 100% there is you won instead of spectate (button below to spctate)
     3. difficulties doesn't Work
     4. Optimize for Mobile 
     5. Tags (admin)
@@ -81,6 +88,4 @@
     7. Add sound
     9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
     10. Login Page Rework (Change Password on Login [Forgot Password])
-    11. Settings Limit (solo)
     12. Rework Flexbox
-    13. emotes (maybe chat)

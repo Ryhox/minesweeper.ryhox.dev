@@ -7,12 +7,13 @@ const fs = require('fs');
 const https = require('https');
 const admin = require('firebase-admin');
 const serviceAccount = require('./firebaseServiceAccount.json');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+require('dotenv').config();
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-
-require('dotenv').config();
 
 const ROOT_DIR = path.resolve(__dirname);
 const USER_DATA_DIR = path.join(ROOT_DIR, 'userDATA');
@@ -20,8 +21,9 @@ const PROFILE_PICS_DIR = path.join(ROOT_DIR, 'profile_pics');
 
 const app = express();
 const server = http.createServer(app);
-// allow larger payloads for base64 image uploads
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 const io = socketIo(server, {
   cors: {
@@ -30,28 +32,33 @@ const io = socketIo(server, {
   }
 });
 
+app.get('/lobby', (req, res) => {
+  const referer = req.get('Referer');
+  if (referer) return res.redirect(referer);
+  res.send(`<script>window.history.back();</script>`);
+});
 
-
-//rename cooldown for 
-const RENAME_COOLDOWN_DAYS = 14; 
-
-
-// SETTINGSSSS
+// Constants
+const RENAME_COOLDOWN_DAYS = 14;
 const DIFFICULTY_SETTINGS = {
   easy: { rows: 10, cols: 10, mines: 10 },
   medium: { rows: 16, cols: 16, mines: 40 },
   hard: { rows: 30, cols: 16, mines: 99 }
 };
-
 const RECONNECT_TIMEOUT = 10000;
-const LOBBY_CLEAR_TIME = 30000; 
-const RECONNECT_PENALTY = 5000; 
+const LOBBY_CLEAR_TIME = 30000;
+const RECONNECT_PENALTY = 5000;
 
 const lobbies = {};
 const playerSessions = {};
 const lobbyTimeouts = {};
+const lobbyChats = {};
 
+// Ensure directories exist
+if (!fs.existsSync(USER_DATA_DIR)) fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+if (!fs.existsSync(PROFILE_PICS_DIR)) fs.mkdirSync(PROFILE_PICS_DIR, { recursive: true });
 
+// Utility functions
 function getUidFromSocketId(socketId) {
   return playerSessions[socketId]?.uid;
 }
@@ -60,12 +67,9 @@ function saveGameResult(uid, result) {
   if (!uid) return;
   const userFile = path.join(USER_DATA_DIR, `${uid}.json`);
   if (!fs.existsSync(userFile)) return;
-
   try {
     const userData = JSON.parse(fs.readFileSync(userFile, 'utf8'));
-    if (!userData.gameHistory) {
-      userData.gameHistory = [];
-    }
+    if (!userData.gameHistory) userData.gameHistory = [];
     userData.gameHistory.push(result);
     fs.writeFileSync(userFile, JSON.stringify(userData, null, 2), 'utf8');
   } catch (err) {
@@ -86,7 +90,6 @@ function createGrid(rows, cols, mines, startX, startY) {
   const grid = Array(rows).fill().map(() => Array(cols).fill(0));
   const minePositions = [];
   const protectedArea = new Set();
-
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       const px = startX + dx;
@@ -96,22 +99,17 @@ function createGrid(rows, cols, mines, startX, startY) {
       }
     }
   }
-
   while (minePositions.length < mines) {
     const x = Math.floor(Math.random() * cols);
     const y = Math.floor(Math.random() * rows);
-    
     if (protectedArea.has(`${x},${y}`)) continue;
-    
     if (grid[y][x] === 0) {
       grid[y][x] = 'X';
       minePositions.push([x, y]);
-      
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           const newX = x + dx;
           const newY = y + dy;
-          
           if (newX >= 0 && newX < cols && newY >= 0 && newY < rows && grid[newY][newX] !== 'X') {
             grid[newY][newX]++;
           }
@@ -119,42 +117,33 @@ function createGrid(rows, cols, mines, startX, startY) {
       }
     }
   }
-  
   return grid;
 }
 
 function getInitialRevealed(grid, startX, startY, rows, cols) {
   const revealed = [];
-  const queue = [{x: startX, y: startY}];
+  const queue = [{ x: startX, y: startY }];
   const visited = new Set();
   visited.add(`${startX},${startY}`);
-
   while (queue.length > 0) {
     const cell = queue.shift();
     revealed.push(cell);
-
     if (grid[cell.y][cell.x] !== 0) continue;
-
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         if (dx === 0 && dy === 0) continue;
-        
         const newX = cell.x + dx;
         const newY = cell.y + dy;
-        
         if (newX < 0 || newX >= cols || newY < 0 || newY >= rows) continue;
-        
         const key = `${newX},${newY}`;
         if (visited.has(key)) continue;
-        
         if (grid[newY][newX] !== 'X') {
           visited.add(key);
-          queue.push({x: newX, y: newY});
+          queue.push({ x: newX, y: newY });
         }
       }
     }
   }
-  
   return revealed;
 }
 
@@ -165,26 +154,16 @@ function calculateProgress(gameState, playerState) {
       init => init.x === cell.x && init.y === cell.y
     )
   );
-  
   const playerRevealedSafeCells = playerRevealedCells.filter(
     cell => gameState.grid[cell.y][cell.x] !== 'X'
   ).length;
-
   const revealableCells = totalSafeCells - playerState.initialRevealedCells.length;
-  
   if (revealableCells <= 0) return 100;
-  
   return Math.min(100, Math.floor((playerRevealedSafeCells / revealableCells) * 100));
 }
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public'), {
-  extensions: ['html']
-}));
-// serve profile pictures
-if (!fs.existsSync(PROFILE_PICS_DIR)) {
-  fs.mkdirSync(PROFILE_PICS_DIR, { recursive: true });
-}
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 app.use('/profile_pics', express.static(PROFILE_PICS_DIR));
 app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/assets/images', 'minesweeperlogo.png'));
@@ -401,7 +380,6 @@ socket.on('createLobby', ({ difficulty, playerCount }) => {
     lobby.users.push({ id: socket.id, name: playerName, ready: false });
     socket.join(code);
 
-    // include uid (if available) when sending user list to clients
     const usersForClient = lobby.users.map(u => ({
       id: u.id,
       name: u.name,
@@ -731,6 +709,54 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
     });
   });
 
+  socket.on('lobbyChatJoin', ({ lobby, username, uid }) => {
+    if (!lobby) return;
+    socket.join('chat_' + lobby);
+    socket.lobbyChatRoom = 'chat_' + lobby;
+    socket.lobbyChatUser = username;
+    socket.lobbyChatUid = uid;
+
+    if (lobbyChats[lobby]) {
+      lobbyChats[lobby].forEach(msg =>
+        socket.emit('lobbyChatMessage', msg)
+      );
+    }
+    socket.emit('lobbyChatJoined');
+    socket.to('chat_' + lobby).emit('lobbyChatMessage', {
+      type: 'system',
+      message: `${username} joined the chat.`,
+      timestamp: Date.now()
+    });
+  });
+
+  socket.on('lobbyChatMessage', ({ lobby, message, username, uid }) => {
+    if (!lobby || !message) return;
+    const msgObj = {
+      username: username || socket.lobbyChatUser || 'User',
+      uid: uid || socket.lobbyChatUid || null,
+      message: message,
+      timestamp: Date.now()
+    };
+    if (!lobbyChats[lobby]) lobbyChats[lobby] = [];
+    lobbyChats[lobby].push(msgObj);
+    if (lobbyChats[lobby].length > 50) lobbyChats[lobby].shift();
+
+    io.to('chat_' + lobby).emit('lobbyChatMessage', msgObj);
+  });
+
+  const origDisconnect = socket.listeners('disconnect')[0];
+  socket.removeAllListeners('disconnect');
+  socket.on('disconnect', (...args) => {
+    if (socket.lobbyChatRoom && socket.lobbyChatUser) {
+      socket.to(socket.lobbyChatRoom).emit('lobbyChatMessage', {
+        type: 'system',
+        message: `${socket.lobbyChatUser} left the chat.`,
+        timestamp: Date.now()
+      });
+    }
+    if (origDisconnect) origDisconnect.apply(socket, args);
+  });
+
   socket.on('disconnect', () => {
     const player = playerSessions[socket.id];
     if (!player || !player.lobby) return;
@@ -1029,12 +1055,6 @@ const finalResults = results.map(r => ({
 });
 
 
-
-
-
-if (!fs.existsSync(USER_DATA_DIR)) {
-  fs.mkdirSync(USER_DATA_DIR, { recursive: true });
-}
 
 
 
@@ -1516,7 +1536,7 @@ app.post('/recaptcha', async (req, res) => {
   }
 });
 
-
+// 404 fallback
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });

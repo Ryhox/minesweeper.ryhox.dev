@@ -1,9 +1,7 @@
-// Default settings
 const DEFAULT_GRID_WIDTH = 10;
 const DEFAULT_GRID_HEIGHT = 10;
 const DEFAULT_MINE_COUNT = 15;
 
-// Current game settings
 let GRID_WIDTH = DEFAULT_GRID_WIDTH;
 let GRID_HEIGHT = DEFAULT_GRID_HEIGHT;
 let MINE_COUNT = DEFAULT_MINE_COUNT;
@@ -16,351 +14,459 @@ let flagsLeft;
 let grid;
 let gameActive = false;
 let firstClick = true;
-const BEST_TIME_KEY = 'minesweeperBestTime';
 let gameTime = 0;
+
+let leftMouseDown = false;
+let rightMouseDown = false;
+
+function showCustomAlert(message) {
+    alert(message);
+}
+
 async function saveSoloGameResult(won, time, mineHits) {
-    if (GRID_WIDTH < 10 || GRID_HEIGHT < 10 || MINE_COUNT < 15) {
-        console.log("Game settings do not meet criteria for saving stats (min 15x15, 15 mines).");
-        return;
-    }
-
+    if (GRID_WIDTH < 10 || GRID_HEIGHT < 10 || MINE_COUNT < 15) return;
     const user = firebase.auth().currentUser;
-    if (!user) {
-        console.log("User not logged in. Cannot save stats.");
-        return;
-    }
-
+    if (!user) return;
     try {
         const token = await user.getIdToken();
-        const result = {
-            won,
-            time, 
-            width: GRID_WIDTH,
-            height: GRID_HEIGHT,
-            mines: MINE_COUNT,
-            mineHits: mineHits
-        };
-
+        const result = { won, time, width: GRID_WIDTH, height: GRID_HEIGHT, mines: MINE_COUNT, mineHits };
         await fetch('/api/saveSoloGame', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, result })
         });
-    } catch (error) {
-        console.error("Failed to save solo game result:", error);
+    } catch (err) {
+        console.error("Failed to save solo game result:", err);
     }
 }
-function initGame() {
-  gameActive = true;
-  firstClick = true;
-  clearInterval(timerInterval);
-  revealedCells = new Set();
-  flaggedCells = new Set();
-  flagsLeft = MINE_COUNT;
-  grid = Array(GRID_HEIGHT).fill().map(() => Array(GRID_WIDTH).fill(0));
 
-  const gridElement = document.getElementById('minesweeperGrid');
-  gridElement.innerHTML = '';
-
-  for (let y = 0; y < GRID_HEIGHT; y++) {
-    const row = document.createElement('div');
-    row.className = 'gridRow';
-    for (let x = 0; x < GRID_WIDTH; x++) {
-      const cell = document.createElement('div');
-      cell.className = 'gridCell';
-      cell.dataset.x = x;
-      cell.dataset.y = y;
-      cell.textContent = '';
-      row.appendChild(cell);
+async function getBestTime() {
+    if (GRID_WIDTH !== DEFAULT_GRID_WIDTH || GRID_HEIGHT !== DEFAULT_GRID_HEIGHT || MINE_COUNT !== DEFAULT_MINE_COUNT) return null;
+    const user = firebase.auth().currentUser;
+    if (!user) return null;
+    try {
+        const token = await user.getIdToken();
+        const res = await fetch('/api/getBestTime', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const data = await res.json();
+        return data.bestTime || null;
+    } catch (err) {
+        console.error("Failed to get best time:", err);
+        return null;
     }
-    gridElement.appendChild(row);
-  }
+}
 
-  document.getElementById('soloWinModal').style.display = 'none';
-  document.getElementById('flagCounter').textContent = `Flags left: ${flagsLeft}`;
-  document.getElementById('gameTimer').textContent = 'Time: 0 s';
+async function saveBestTime(time) {
+    if (GRID_WIDTH !== DEFAULT_GRID_WIDTH || GRID_HEIGHT !== DEFAULT_GRID_HEIGHT || MINE_COUNT !== DEFAULT_MINE_COUNT) return;
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    try {
+        const token = await user.getIdToken();
+        await fetch('/api/saveBestTime', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, time })
+        });
+    } catch (err) {
+        console.error("Failed to save best time:", err);
+    }
+}
 
-  document.querySelectorAll('.gridCell').forEach(cell => {
-    cell.onclick = handleClick;
-    cell.oncontextmenu = handleRightClick;
-    cell.classList.remove('revealed', 'flagged', 'mine');
-    cell.textContent = '';
-  });
+function initGame() {
+    gameActive = true;
+    firstClick = true;
+    clearInterval(timerInterval);
+    revealedCells = new Set();
+    flaggedCells = new Set();
+    flagsLeft = MINE_COUNT;
+
+    grid = Array(GRID_HEIGHT).fill().map(() => Array(GRID_WIDTH).fill(0));
+
+    const gridElement = document.getElementById('minesweeperGrid');
+    if (!gridElement) return;
+    gridElement.innerHTML = '';
+
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        const row = document.createElement('div');
+        row.className = 'gridRow';
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'gridCell';
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            row.appendChild(cell);
+        }
+        gridElement.appendChild(row);
+    }
+
+    const flagCounter = document.getElementById('flagCounter');
+    const gameTimer = document.getElementById('gameTimer');
+    if (flagCounter) flagCounter.textContent = `Flags left: ${flagsLeft}`;
+    if (gameTimer) gameTimer.textContent = 'Time: 0 s';
+
+    const winModal = document.getElementById('soloWinModal');
+    const settingsModal = document.getElementById('settingsModal');
+    if (winModal) winModal.style.display = 'none';
+    if (settingsModal) settingsModal.style.display = 'none';
+
+    installChordHandlers();
 }
 
 function generateGrid(safeX, safeY) {
-  const protectedArea = new Set();
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      const px = safeX + dx;
-      const py = safeY + dy;
-      if (px >= 0 && px < GRID_WIDTH && py >= 0 && py < GRID_HEIGHT) {
-        protectedArea.add(`${px},${py}`);
-      }
-    }
-  }
-
-  let minesPlaced = 0;
-  while (minesPlaced < MINE_COUNT) {
-    const x = Math.floor(Math.random() * GRID_WIDTH);
-    const y = Math.floor(Math.random() * GRID_HEIGHT);
-
-    if (!protectedArea.has(`${x},${y}`) && grid[y][x] !== 'X') {
-      grid[y][x] = 'X';
-      minesPlaced++;
-    }
-  }
-
-  for (let y = 0; y < GRID_HEIGHT; y++) {
-    for (let x = 0; x < GRID_WIDTH; x++) {
-      if (grid[y][x] === 'X') continue;
-      let count = 0;
-      for (let dy = -1; dy <= 1; dy++) {
+    const protectedArea = new Set();
+    for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
-          if (
-            y + dy >= 0 &&
-            y + dy < GRID_HEIGHT &&
-            x + dx >= 0 &&
-            x + dx < GRID_WIDTH &&
-            grid[y + dy][x + dx] === 'X'
-          )
-            count++;
+            const px = safeX + dx;
+            const py = safeY + dy;
+            if (px >= 0 && px < GRID_WIDTH && py >= 0 && py < GRID_HEIGHT) {
+                protectedArea.add(`${px},${py}`);
+            }
         }
-      }
-      grid[y][x] = count;
     }
-  }
+
+    let minesPlaced = 0;
+    while (minesPlaced < MINE_COUNT) {
+        const x = Math.floor(Math.random() * GRID_WIDTH);
+        const y = Math.floor(Math.random() * GRID_HEIGHT);
+        if (!protectedArea.has(`${x},${y}`) && grid[y][x] !== 'X') {
+            grid[y][x] = 'X';
+            minesPlaced++;
+        }
+    }
+
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            if (grid[y][x] === 'X') continue;
+            let count = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const ny = y + dy, nx = x + dx;
+                    if (ny >= 0 && ny < GRID_HEIGHT && nx >= 0 && nx < GRID_WIDTH && grid[ny][nx] === 'X') count++;
+                }
+            }
+            grid[y][x] = count;
+        }
+    }
 }
 
-function handleClick(event) {
-  if (!gameActive) return;
-  const cell = event.target;
-  const x = parseInt(cell.dataset.x);
-  const y = parseInt(cell.dataset.y);
+function handleLeftClick(x, y) {
+    if (!gameActive) return;
+    const key = `${x},${y}`;
+    if (flaggedCells.has(key) || revealedCells.has(key)) return;
 
-  if (firstClick) {
-    firstClick = false;
-    startTime = Date.now();
-    timerInterval = setInterval(updateTimer, 1000);
-    generateGrid(x, y);
-  }
+    if (firstClick) {
+        firstClick = false;
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+        generateGrid(x, y);
+    }
 
-  const key = `${x},${y}`;
-  if (flaggedCells.has(key) || revealedCells.has(key)) return;
+    if (grid[y][x] === 'X') {
+        gameActive = false;
+        clearInterval(timerInterval);
+        revealFullGrid();
+        gameTime = Math.floor((Date.now() - startTime) / 1000);
+        showWinModal(gameTime, false);
+        saveSoloGameResult(false, null, 1);
+        return;
+    }
 
-  if (grid[y][x] === 'X') {
-    gameActive = false;
-    clearInterval(timerInterval);
-    revealFullGrid();
-    gameTime = Math.floor((Date.now() - startTime) / 1000);
-    showWinModal(gameTime, false); 
-    saveSoloGameResult(false, null, 1);
-    return;
-  }
-
-
-  floodFill(x, y);
-  checkWin();
+    floodFill(x, y);
+    checkWin();
 }
 
-function handleRightClick(event) {
-  if (!gameActive) return;
-  event.preventDefault();
-  const cell = event.target;
-  const x = parseInt(cell.dataset.x);
-  const y = parseInt(cell.dataset.y);
-  const key = `${x},${y}`;
+function handleRightClick(x, y) {
+    if (!gameActive) return;
+    const key = `${x},${y}`;
+    if (revealedCells.has(key)) return;
+    const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+    if (!cell) return;
 
-  if (revealedCells.has(key)) return;
+    if (flaggedCells.has(key)) {
+        flaggedCells.delete(key);
+        flagsLeft++;
+        cell.textContent = '';
+        cell.classList.remove('flagged');
+    } else {
+        if (flagsLeft <= 0) return;
+        flaggedCells.add(key);
+        flagsLeft--;
+        cell.textContent = '🚩';
+        cell.classList.add('flagged');
+    }
 
-  if (flaggedCells.has(key)) {
-    flaggedCells.delete(key);
-    flagsLeft++;
-    cell.textContent = '';
-  } else {
-    if (flagsLeft <= 0) return;
-    flaggedCells.add(key);
-    flagsLeft--;
-    cell.textContent = '🚩';
-  }
-
-  cell.classList.toggle('flagged');
-  document.getElementById('flagCounter').textContent = `Flags left: ${flagsLeft}`;
+    const flagCounter = document.getElementById('flagCounter');
+    if (flagCounter) flagCounter.textContent = `Flags left: ${flagsLeft}`;
 }
 
 function floodFill(x, y) {
-  const queue = [[x, y]];
-  const visited = new Set();
+    const queue = [[x, y]];
+    const visited = new Set();
 
-  while (queue.length > 0) {
-    const [cx, cy] = queue.shift();
-    const key = `${cx},${cy}`;
+    while (queue.length > 0) {
+        const [cx, cy] = queue.shift();
+        const key = `${cx},${cy}`;
+        if (visited.has(key)) continue;
+        if (cx < 0 || cx >= GRID_WIDTH || cy < 0 || cy >= GRID_HEIGHT) continue;
+        if (grid[cy][cx] === 'X') continue;
+        if (revealedCells.has(key) || flaggedCells.has(key)) continue;
 
-    if (visited.has(key)) continue;
-    if (cx < 0 || cx >= GRID_WIDTH || cy < 0 || cy >= GRID_HEIGHT) continue;
-    if (grid[cy][cx] === 'X') continue;
-    if (revealedCells.has(key) || flaggedCells.has(key)) continue;
+        visited.add(key);
+        revealedCells.add(key);
 
-    visited.add(key);
-    revealedCells.add(key);
-    const cell = document.querySelector(`[data-x="${cx}"][data-y="${cy}"]`);
-    if (!cell) continue;
-    cell.classList.add('revealed');
-    cell.textContent = grid[cy][cx] || '';
+        const cell = document.querySelector(`[data-x="${cx}"][data-y="${cy}"]`);
+        if (!cell) continue;
 
-    if (grid[cy][cx] === 0) {
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx !== 0 || dy !== 0) {
-            queue.push([cx + dx, cy + dy]);
-          }
+        cell.classList.add('revealed');
+        cell.textContent = grid[cy][cx] || '';
+
+        if (grid[cy][cx] === 0) {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx !== 0 || dy !== 0) queue.push([cx + dx, cy + dy]);
+                }
+            }
         }
-      }
     }
-  }
 }
 
 function checkWin() {
-  const totalSafe = GRID_WIDTH * GRID_HEIGHT - MINE_COUNT;
-  if (revealedCells.size === totalSafe) {
-    gameActive = false;
-    clearInterval(timerInterval);
-    gameTime = Math.floor((Date.now() - startTime) / 1000);
-    showWinModal(gameTime, true);
-    saveSoloGameResult(true, gameTime, 0);
-  }
+    const totalSafe = GRID_WIDTH * GRID_HEIGHT - MINE_COUNT;
+    if (revealedCells.size === totalSafe) {
+        gameActive = false;
+        clearInterval(timerInterval);
+        gameTime = Math.floor((Date.now() - startTime) / 1000);
+        showWinModal(gameTime, true);
+        saveSoloGameResult(true, gameTime, 0);
+    }
 }
 
-function showWinModal(timeTaken, won = true) {
-  let bestTime = localStorage.getItem(BEST_TIME_KEY);
+async function showWinModal(timeTaken, won = true) {
+    let bestTime = await getBestTime();
+    if (won && (!bestTime || timeTaken < bestTime)) {
+        bestTime = timeTaken;
+        await saveBestTime(timeTaken);
+    }
 
-  if (won && (!bestTime || timeTaken < parseInt(bestTime))) {
-    bestTime = timeTaken;
-    localStorage.setItem(BEST_TIME_KEY, bestTime.toString());
-  }
+    const winTime = document.getElementById('winTime');
+    const bestTimeElement = document.getElementById('bestTime');
+    const winMessage = document.getElementById('winMessage');
+    const soloWinModal = document.getElementById('soloWinModal');
 
-  document.getElementById('winTime').textContent = timeTaken;
-  document.getElementById('bestTime').textContent = bestTime || 'N/A';
-  document.getElementById('winMessage').textContent = won ? '🎉 Gewonnen!' : '💥 Verloren!';
-  document.getElementById('soloWinModal').style.display = 'flex';
+    if (winTime) winTime.textContent = timeTaken;
+    if (bestTimeElement) bestTimeElement.textContent = bestTime || 'N/A';
+    if (winMessage) winMessage.textContent = won ? '🎉 Gewonnen!' : '💥 Verloren!';
+    if (soloWinModal) soloWinModal.style.display = 'flex';
 }
 
 function revealFullGrid() {
-  grid.forEach((row, y) => {
-    row.forEach((cellValue, x) => {
-      const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-      if (!cell) return;
-      cell.classList.add('revealed');
-      cell.textContent = cellValue || '';
-      if (cellValue === 'X') cell.classList.add('mine');
-    });
-  });
+    for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+            const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+            if (!cell) continue;
+            cell.classList.add('revealed');
+            if (grid[y][x] === 'X') {
+                cell.textContent = '💣';
+                cell.classList.add('mine');
+            } else {
+                cell.textContent = grid[y][x] || '';
+            }
+        }
+    }
 }
 
 function updateTimer() {
-  const elapsed = Math.floor((Date.now() - startTime) / 1000);
-  document.getElementById('gameTimer').textContent = `Time: ${elapsed} s`;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const gameTimer = document.getElementById('gameTimer');
+    if (gameTimer) gameTimer.textContent = `Time: ${elapsed} s`;
 }
 
-function openSettingsModal() {
-  document.getElementById('settingsModal').style.display = 'flex';
+function installChordHandlers() {
+    const gridElement = document.getElementById('minesweeperGrid');
+    if (!gridElement) return;
 
-  document.getElementById('inputWidth').value = GRID_WIDTH;
-  document.getElementById('inputHeight').value = GRID_HEIGHT;
-  document.getElementById('inputMines').value = MINE_COUNT;
+    const getNeighbors = (x, y) => {
+        const neighbors = [];
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) neighbors.push([nx, ny]);
+            }
+        }
+        return neighbors;
+    };
+
+    const countFlagsAround = (x, y) => {
+        return getNeighbors(x, y).reduce((c, [nx, ny]) => c + (flaggedCells.has(`${nx},${ny}`) ? 1 : 0), 0);
+    };
+
+    const chordReveal = (x, y) => {
+        if (!gameActive) return;
+        const neighbors = getNeighbors(x, y);
+        const unflagged = neighbors.filter(([nx, ny]) => !flaggedCells.has(`${nx},${ny}`));
+
+        let mineHit = null;
+        for (const [nx, ny] of unflagged) {
+            if (grid[ny][nx] === 'X') {
+                mineHit = [nx, ny];
+                break;
+            }
+        }
+
+        if (mineHit) {
+            gameActive = false;
+            clearInterval(timerInterval);
+            const [mx, my] = mineHit;
+            const cell = document.querySelector(`[data-x="${mx}"][data-y="${my}"]`);
+            if (cell) cell.classList.add('mine-hit');
+            revealFullGrid();
+            gameTime = Math.floor((Date.now() - startTime) / 1000);
+            showWinModal(gameTime, false);
+            saveSoloGameResult(false, null, 1);
+            return;
+        }
+
+        unflagged.forEach(([nx, ny]) => {
+            const key = `${nx},${ny}`;
+            if (!revealedCells.has(key)) {
+                revealedCells.add(key);
+                const cell = document.querySelector(`[data-x="${nx}"][data-y="${ny}"]`);
+                if (!cell) return;
+                cell.classList.add('revealed');
+                cell.textContent = grid[ny][nx] || '';
+                if (grid[ny][nx] === 0) floodFill(nx, ny);
+            }
+        });
+        checkWin();
+    };
+
+    gridElement.addEventListener('mousedown', e => {
+        const cell = e.target.closest('.gridCell');
+        if (!cell) return;
+        const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
+        if (e.button === 0) leftMouseDown = true;
+        if (e.button === 2) rightMouseDown = true;
+
+        if (leftMouseDown && rightMouseDown && cell.classList.contains('revealed') && !isNaN(+cell.textContent) && +cell.textContent > 0) {
+            getNeighbors(x, y).forEach(([nx, ny]) => {
+                const nb = document.querySelector(`[data-x="${nx}"][data-y="${ny}"]`);
+                if (nb && !nb.classList.contains('revealed') && !nb.classList.contains('flagged')) nb.classList.add('chord-highlight');
+            });
+        }
+    });
+
+    gridElement.addEventListener('click', e => {
+        if (e.button === 0) {
+            const cell = e.target.closest('.gridCell');
+            if (!cell) return;
+            const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
+            if (!(leftMouseDown && rightMouseDown)) handleLeftClick(x, y);
+        }
+    });
+
+    gridElement.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        const cell = e.target.closest('.gridCell');
+        if (!cell) return;
+        const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
+
+        if (cell.classList.contains('revealed') && !isNaN(+cell.textContent) && +cell.textContent > 0) {
+            const requiredFlags = +cell.textContent;
+            const currentFlags = countFlagsAround(x, y);
+            if (requiredFlags === currentFlags) chordReveal(x, y);
+            else handleRightClick(x, y);
+        } else handleRightClick(x, y);
+
+        document.querySelectorAll('.chord-highlight').forEach(c => c.classList.remove('chord-highlight'));
+    });
+
+    gridElement.addEventListener('mouseup', e => {
+        if (e.button === 0) leftMouseDown = false;
+        if (e.button === 2) rightMouseDown = false;
+        document.querySelectorAll('.chord-highlight').forEach(c => c.classList.remove('chord-highlight'));
+    });
+
+    gridElement.addEventListener('mouseleave', () => {
+        leftMouseDown = rightMouseDown = false;
+        document.querySelectorAll('.chord-highlight').forEach(c => c.classList.remove('chord-highlight'));
+    });
+}
+
+// --- Settings ---
+function openSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.getElementById('inputWidth').value = GRID_WIDTH;
+    document.getElementById('inputHeight').value = GRID_HEIGHT;
+    document.getElementById('inputMines').value = MINE_COUNT;
 }
 
 function closeSettingsModal() {
-  document.getElementById('settingsModal').style.display = 'none';
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.style.display = 'none';
 }
 
 function applySettings() {
-  const w = parseInt(document.getElementById('inputWidth').value);
-  const h = parseInt(document.getElementById('inputHeight').value);
-  const m = parseInt(document.getElementById('inputMines').value);
+    const w = parseInt(document.getElementById('inputWidth').value);
+    const h = parseInt(document.getElementById('inputHeight').value);
+    const m = parseInt(document.getElementById('inputMines').value);
 
-  if (
-    isNaN(w) || isNaN(h) || isNaN(m) ||
-    w < 5 || w > 30 ||
-    h < 5 || h > 30 ||
-    m < 1 || m >= w * h
-  ) {
-    alert('Bitte gültige Werte eingeben:\n- Breite und Höhe: 5 bis 30\n- Minen: mind. 1 und kleiner als Breite×Höhe');
-    return;
-  }
+    if (isNaN(w) || isNaN(h) || isNaN(m)) { showCustomAlert('Bitte gültige Zahlen eingeben!'); return; }
+    if (w < 5 || w > 25 || h < 5 || h > 25) { showCustomAlert('Breite/Höhe: 5–25'); return; }
+    if (m < 1 || m >= w * h) { showCustomAlert('Minenanzahl ungültig'); return; }
 
-  GRID_WIDTH = w;
-  GRID_HEIGHT = h;
-  MINE_COUNT = m;
-  flagsLeft = MINE_COUNT;
-
-  closeSettingsModal();
-  initGame();
+    GRID_WIDTH = w; GRID_HEIGHT = h; MINE_COUNT = m;
+    flagsLeft = MINE_COUNT;
+    closeSettingsModal();
+    initGame();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  const restartBtn = document.getElementById('restartButton');
-  if (restartBtn) {
-    restartBtn.onclick = function () {
-      initGame();
-    };
-  }
-
-  const settingsBtn = document.getElementById('settingsButton');
-  if (settingsBtn) {
-    settingsBtn.onclick = openSettingsModal;
-  }
-
-  const resetSettingsBtn = document.getElementById('resetSettingsButton');
-  if (resetSettingsBtn) {
-resetSettingsBtn.onclick = function () {
-  GRID_WIDTH = DEFAULT_GRID_WIDTH;
-  GRID_HEIGHT = DEFAULT_GRID_HEIGHT;
-  MINE_COUNT = DEFAULT_MINE_COUNT;
-  flagsLeft = MINE_COUNT;
-
-  document.getElementById('inputWidth').value = GRID_WIDTH;
-  document.getElementById('inputHeight').value = GRID_HEIGHT;
-  document.getElementById('inputMines').value = MINE_COUNT;
-
-  closeSettingsModal();
-  initGame();
-};
-
-  }
-
-  const settingsConfirmBtn = document.getElementById('settingsConfirmButton');
-  if (settingsConfirmBtn) {
-    settingsConfirmBtn.onclick = applySettings;
-  }
-
-  const settingsCancelBtn = document.getElementById('settingsCancelButton');
-  if (settingsCancelBtn) {
-    settingsCancelBtn.onclick = closeSettingsModal;
-  }
-
-  const closeWinModalBtn = document.getElementById('closeWinModal');
-  if (closeWinModalBtn) {
-    closeWinModalBtn.onclick = function () {
-      document.getElementById('soloWinModal').style.display = 'none';
-    };
-  }
+function setupModalCloseButtons() {
+    const closeWinModal = document.getElementById('closeWinModal');
+    if (closeWinModal) closeWinModal.onclick = () => { document.getElementById('soloWinModal').style.display = 'none'; };
 
     const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
-  if (closeSettingsModalBtn) {
-    closeSettingsModalBtn.onclick = function () {
-      document.getElementById('settingsModal').style.display = 'none';
-    };
-  }
+    if (closeSettingsModalBtn) closeSettingsModalBtn.onclick = closeSettingsModal;
 
-  const backButton = document.getElementById('backButtonIndex');
-  if (backButton) {
-    backButton.onclick = () => {
-      window.location.href = '/';
+    window.onclick = (event) => {
+        const winModal = document.getElementById('soloWinModal');
+        const settingsModal = document.getElementById('settingsModal');
+        if (event.target === winModal) winModal.style.display = 'none';
+        if (event.target === settingsModal) settingsModal.style.display = 'none';
     };
-  }
+}
 
-  initGame();
+document.addEventListener('DOMContentLoaded', () => {
+    setupModalCloseButtons();
+
+    const restartBtn = document.getElementById('restartButton');
+    const settingsBtn = document.getElementById('settingsButton');
+    const resetSettingsBtn = document.getElementById('resetSettingsButton');
+    const settingsConfirmBtn = document.getElementById('settingsConfirmButton');
+    const settingsCancelBtn = document.getElementById('settingsCancelButton');
+    const backButton = document.getElementById('backButtonIndex');
+
+    if (restartBtn) restartBtn.onclick = initGame;
+    if (settingsBtn) settingsBtn.onclick = openSettingsModal;
+    if (resetSettingsBtn) resetSettingsBtn.onclick = () => {
+        GRID_WIDTH = DEFAULT_GRID_WIDTH;
+        GRID_HEIGHT = DEFAULT_GRID_HEIGHT;
+        MINE_COUNT = DEFAULT_MINE_COUNT;
+        flagsLeft = MINE_COUNT;
+        document.getElementById('inputWidth').value = GRID_WIDTH;
+        document.getElementById('inputHeight').value = GRID_HEIGHT;
+        document.getElementById('inputMines').value = MINE_COUNT;
+        closeSettingsModal();
+        initGame();
+    };
+    if (settingsConfirmBtn) settingsConfirmBtn.onclick = applySettings;
+    if (settingsCancelBtn) settingsCancelBtn.onclick = closeSettingsModal;
+    if (backButton) backButton.onclick = () => { window.location.href = '/'; };
+
+    initGame();
 });

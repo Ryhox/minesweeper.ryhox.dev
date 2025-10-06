@@ -13,27 +13,28 @@
     <script src="/assets/js/firebase-auth.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+<!-- Add Cropper.js CSS in <head> -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
 
 </head>
 <body>
-    <header>
+ <header>
     <a href="/" style="text-decoration: none;">
     <div class="header-title">RYHOX.DEV</div>
     </a>    <div class="header-subtitle">MINESWEEPER selection</div>
 <div class="user-menu-wrapper" id="userMenuWrapper">
     <div class="user-icon" id="userIcon" style="display:none;">
-        <img id="headerAvatar" src="/assets/images/minesweeperlogo.png" alt="avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:none;">
-        <i class="fas fa-user-circle" id="headerAvatarFallback" style="font-size:36px;"></i>
+        <img id="headerAvatar" src="./assets/images/icon.png" alt="avatar" style="margin-top:0px;width:56px;height:56px;border-radius:50%;object-fit:cover;">
+        <i id="headerAvatarFallback" style="font-size:36px;"></i>
     </div>
     <div class="user-dropdown" id="userDropdown">
         <div class="dropdown-header">
             <p class="dropdown-signed">Signed in as</p>
             <div class="dropdown-user">
                 <div class="dropdown-avatar">
-                    <img id="dropdownAvatar" src="/assets/images/minesweeperlogo.png" alt="avatar" style="width:56px;height:56px;border-radius:50%;object-fit:cover;display:none;">
-                    <svg fill="currentColor" viewBox="0 0 20 20" class="avatar-svg" id="dropdownAvatarFallback"><path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path></svg>
+                    <img id="dropdownAvatar" src="./assets/images/icon.png" alt="avatar" style="margin-top:50px;width:56px;height:56px;border-radius:50%;object-fit:cover;">
                 </div>
-                <p class="dropdown-email" id="dropdownEmail"></p>
+                <p class="dropdown-email" id="dropdownEmail" style="margin-top:50px;"></p>
             </div>
         </div>
         <div class="dropdown-links">
@@ -89,7 +90,7 @@
                     </div>
                     <div class="info-content" id="nameSection">
                         <div class="info-label">Display Name</div>
-                            <input type="text" id="usernameInput" placeholder="Enter new username">
+                            <input type="text" id="usernameInput" minlength="4" maxlength="12" placeholder="Enter new username">
                         </div>
                         <button class="action-btn" id="saveNameBtnProfile">Save</button>
                 </div>
@@ -159,6 +160,32 @@
     </footer>
     <script src="/assets/js/profile.js"></script>
     <script src="assets/js/maincharacter.js"></script>
+    <!-- Add Cropper.js JS before </body> -->
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+<!-- Crop Modal -->
+<div id="cropModal">
+  <div class="cropModal-content">
+    <div class="cropModal-image-wrapper">
+      <img id="cropImage" class="cropModal-image" />
+      <div class="cropModal-overlay"></div>
+    </div>
+<div class="cropModal-zoom">
+  <i class="fa-solid fa-image zoom-min"></i>
+  <input type="range" id="zoomRange" min="0.1" max="3" step="0.01" value="1" />
+  <i class="fa-solid fa-image zoom-max"></i>
+</div>
+
+    <div class="cropModal-buttons">
+      <button id="cropResetBtn" class="action-btn">Reset</button>
+      <button id="cropCancelBtn" class="action-btn">Cancel</button>
+      <button id="cropConfirmBtn" class="action-btn">Crop & Save</button>
+    </div>
+  </div>
+</div>
+
+
+
 
 </body>
 </html>

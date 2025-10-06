@@ -368,11 +368,10 @@ function updatePlayerList(users) {
   if (list) {
     list.innerHTML = users.map(user => {
       const uid = user.uid || '';
-      // try png first, fallback to jpg, then to site logo
-      const imgSrc = uid ? `/profile_pics/${uid}.png` : '/assets/images/minesweeperlogo.png';
+      const imgSrc = uid ? `/profile_pics/${uid}.png` : '/assets/images/icon.png';
       return `
       <li class="${user.ready ? 'ready' : ''}" data-id="${user.id}">
-        <img class="player-avatar" src="${imgSrc}" data-uid="${uid}" alt="avatar" onerror="(function(el){ if(el.dataset.uid && el.src.indexOf('.png')!==-1){ el.src='/profile_pics/'+el.dataset.uid+'.jpg'; } else { el.src='/assets/images/minesweeperlogo.png'; } })(this)">
+        <img class="player-avatar" src="${imgSrc}" data-uid="${uid}" alt="avatar" onerror="(function(el){ if(el.dataset.uid && el.src.indexOf('.png')!==-1){ el.src='/profile_pics/'+el.dataset.uid+'.jpg'; } else { el.src='/assets/images/icon.png'; } })(this)">
         <span class="player-name-text">${user.name}</span> ${user.ready ? '✅' : ''}
       </li>
     `}).join('');

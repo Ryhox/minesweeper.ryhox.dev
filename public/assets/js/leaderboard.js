@@ -68,6 +68,5 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchAndRenderLeaderboard();
     });
 
-    // Initial load
     fetchAndRenderLeaderboard();
 });

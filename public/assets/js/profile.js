@@ -32,7 +32,6 @@ auth.onAuthStateChanged(user => {
         usernameSpan.textContent = displayName;
     usernameInput.value = displayName;
 
-    // try to load profile picture from server (png then jpg)
     if (user && user.uid) {
       const picUrlPng = `/profile_pics/${user.uid}.png`;
       const picUrlJpg = `/profile_pics/${user.uid}.jpg`;
@@ -194,40 +193,95 @@ saveNameBtn.addEventListener('click', async () => {
     if (dropdownAvatarFallback) dropdownAvatarFallback.style.display = 'none';
   }
 
-  if (avatarInput) {
-    avatarInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) return showErrorAlert('Please select an image file');
+let cropper = null;
+const cropModal = document.getElementById('cropModal');
+const cropImage = document.getElementById('cropImage');
+const cropConfirmBtn = document.getElementById('cropConfirmBtn');
+const cropCancelBtn = document.getElementById('cropCancelBtn');
+const cropResetBtn = document.getElementById('cropResetBtn');
+const zoomRange = document.getElementById('zoomRange');
 
-      const reader = new FileReader();
-      reader.onload = async function(ev) {
-        const dataUrl = ev.target.result;
-        if (profileAvatarPreview) profileAvatarPreview.src = dataUrl;
+if (avatarInput) {
+  avatarInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return showErrorAlert('Please select an image file');
 
-        const user = firebase.auth().currentUser;
-        if (!user) return showErrorAlert('Not authenticated');
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      cropImage.src = ev.target.result;
+      cropModal.style.display = 'flex';
 
-        try {
-          const token = await user.getIdToken();
-          const res = await fetch('/api/uploadProfilePic', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, image: dataUrl })
-          });
-          const data = await res.json();
-          if (!res.ok) return showErrorAlert(data.error || 'Upload failed');
+      if (cropper) { cropper.destroy(); cropper = null; }
 
-          setAvatar(data.url + '?v=' + Date.now());
-          showCustomAlert('Profile picture updated');
-        } catch (err) {
-          console.error('Upload error', err);
-          showErrorAlert('Upload failed: ' + err.message);
-        }
-      };
-      reader.readAsDataURL(file);
+      cropper = new Cropper(cropImage, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 1,
+        movable: true,
+        zoomable: true,
+        rotatable: true,
+        scalable: false,
+        cropBoxMovable: false,
+        cropBoxResizable: false,
+        background: false,
+        guides: false,
+        highlight: false,
+      });
+
+      zoomRange.value = 1;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+zoomRange.addEventListener('input', () => {
+  if (cropper) cropper.zoomTo(parseFloat(zoomRange.value));
+});
+
+cropResetBtn.addEventListener('click', () => {
+  if (cropper) cropper.reset();
+  zoomRange.value = 1;
+});
+
+cropConfirmBtn.addEventListener('click', async () => {
+  if (!cropper) return;
+  const canvas = cropper.getCroppedCanvas({ width: 400, height: 400, imageSmoothingQuality: 'high' });
+  const dataUrl = canvas.toDataURL('image/png');
+  cropModal.style.display = 'none';
+  cropper.destroy();
+  cropper = null;
+  zoomRange.value = 1;
+
+  if (profileAvatarPreview) profileAvatarPreview.src = dataUrl;
+
+  const user = firebase.auth().currentUser;
+  if (!user) return showErrorAlert('Not authenticated');
+
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch('/api/uploadProfilePic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, image: dataUrl })
     });
+    const data = await res.json();
+    if (!res.ok) return showErrorAlert(data.error || 'Upload failed');
+
+    setAvatar(data.url + '?v=' + Date.now());
+    showCustomAlert('Profile picture updated');
+  } catch (err) {
+    showErrorAlert('Upload failed: ' + err.message);
   }
+});
+
+cropCancelBtn.addEventListener('click', () => {
+  cropModal.style.display = 'none';
+  if (cropper) { cropper.destroy(); cropper = null; }
+  avatarInput.value = '';
+});
+
 
     const style = document.createElement('style');
     style.textContent = `

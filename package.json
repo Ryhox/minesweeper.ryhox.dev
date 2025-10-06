@@ -7,10 +7,12 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "engine.io": "^6.6.4",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
     "firebase-admin": "^13.5.0",
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",

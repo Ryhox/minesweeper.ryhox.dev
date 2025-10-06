@@ -32,7 +32,6 @@ firebase.auth().onAuthStateChanged(function(user) {
       };
     }
 
-    // try to load profile picture
     const headerAvatar = document.getElementById('headerAvatar');
     const headerAvatarFallback = document.getElementById('headerAvatarFallback');
     const dropdownAvatar = document.getElementById('dropdownAvatar');

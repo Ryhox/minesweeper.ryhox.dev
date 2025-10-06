@@ -37,8 +37,8 @@ firebase.auth().onAuthStateChanged(function(user) {
     const dropdownAvatar = document.getElementById('dropdownAvatar');
     const dropdownAvatarFallback = document.getElementById('dropdownAvatarFallback');
     if (user.uid) {
-      const png = `/profile_pics/${user.uid}.png`;
-      const jpg = `/profile_pics/${user.uid}.jpg`;
+      const png = `/profile_pics/${user.uid}.png?v=${Date.now()}`;
+      const jpg = `/profile_pics/${user.uid}.jpg?v=${Date.now()}`;
       fetch(png, { method: 'HEAD' }).then(r => {
         if (r.ok) {
           if (headerAvatar) { headerAvatar.src = png; headerAvatar.style.display = 'inline-block'; }

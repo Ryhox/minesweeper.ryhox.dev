@@ -1104,6 +1104,7 @@ app.get('/api/getStats/:username', async (req, res) => {
 
         res.json({
             username: rawData.username,
+            uid: rawData.uid,
             ...stats
         });
 

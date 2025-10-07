@@ -68,6 +68,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateStats(stats) {
+        if (stats.uid) {
+
+            const pngUrl = `/profile_pics/${stats.uid}.png?v=${Date.now()}`;
+            const jpgUrl = `/profile_pics/${stats.uid}.jpg?v=${Date.now()}`;
+            const avatarImg = document.getElementById('profileAvatar');
+            avatarImg.onerror = function () {
+                avatarImg.onerror = null;
+                avatarImg.src = jpgUrl;
+            };
+            avatarImg.src = pngUrl;
+        }
+
         const multiplayerData = stats.multiplayer || {};
         const singleplayerData = stats.singleplayer || {};
         const combinedData = stats.combined || {};

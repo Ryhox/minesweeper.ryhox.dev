@@ -76,7 +76,13 @@
 - Chat (emotes)
 - Pictures are now cropped!!!
 
-
+# 07.10.2025
+- fixed solo
+- Add profile picture to stats (so everyone can see the profile Picture)
+- Added Maxi feature to Multiplayer
+- can send pictures per chat (only add url)
+- fixed login
+ 
 # TODO
 
     1. Quality of Life (refresh button [Lobby Browse])
@@ -86,8 +92,6 @@
     5. Tags (admin)
     6. Optimize Flexbox (stats)
     7. Add sound
-    8. Add profile picture to stats (so everyone can see the profile Picture)
     9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
     10. Login Page Rework (Change Password on Login [Forgot Password])
-    11. solo.html is buggy the flag always changes and so on
     12. Rework Flexbox

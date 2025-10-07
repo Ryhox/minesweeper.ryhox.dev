@@ -108,12 +108,34 @@
     <input placeholder="Email" id="registerEmail" class="inputField" type="email">
 </div>  
 
-<div class="inputContainer">
-    <svg viewBox="0 0 16 16" fill="#d1d1d1" height="16" width="16" xmlns="http://www.w3.org/2000/svg" class="inputIcon">
+<div class="inputContainer" style="position: relative;">
+  <svg viewBox="0 0 16 16" fill="#d1d1d1" height="16" width="16"
+       xmlns="http://www.w3.org/2000/svg"
+       class="inputIcon"
+       style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">
     <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path>
-    </svg>
-    <input placeholder="Password" id="registerPassword" class="inputField" type="password">
-</div>     
+  </svg>
+
+  <input placeholder="Password" id="registerPassword" class="inputField"
+         type="password"
+         style="width: 100%; padding: 10px 35px 10px 35px; box-sizing: border-box;">
+
+  <i id="toggleLoginPassword" class="fa-solid fa-eye-slash" 
+     style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer;"></i>
+</div>
+<script>
+const input = document.getElementById('registerPassword');
+const toggle = document.getElementById('toggleLoginPassword');
+
+toggle.addEventListener('click', () => {
+  input.type = input.type === 'password' ? 'text' : 'password';
+  
+  toggle.classList.toggle('fa-eye');
+    toggle.classList.toggle('fa-eye-slash');
+
+});
+</script>
+   
 
 
     <div class="g-recaptcha" data-sitekey="6LfoaoorAAAAAHShogkkhsA-xPilD7-I5RTNdhNR" data-theme="dark"></div>

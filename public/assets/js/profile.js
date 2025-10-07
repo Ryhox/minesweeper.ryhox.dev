@@ -201,6 +201,13 @@ const cropCancelBtn = document.getElementById('cropCancelBtn');
 const cropResetBtn = document.getElementById('cropResetBtn');
 const zoomRange = document.getElementById('zoomRange');
 
+if (profileAvatarPreview) {
+    profileAvatarPreview.style.cursor = 'pointer'; // show clickable cursor
+    profileAvatarPreview.addEventListener('click', () => {
+        avatarInput.click(); // trigger file input
+    });
+}
+
 if (avatarInput) {
   avatarInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -214,21 +221,22 @@ if (avatarInput) {
 
       if (cropper) { cropper.destroy(); cropper = null; }
 
-      cropper = new Cropper(cropImage, {
-        aspectRatio: 1,
-        viewMode: 1,
-        dragMode: 'move',
-        autoCropArea: 1,
-        movable: true,
-        zoomable: true,
-        rotatable: true,
-        scalable: false,
-        cropBoxMovable: false,
-        cropBoxResizable: false,
-        background: false,
-        guides: false,
-        highlight: false,
-      });
+cropper = new Cropper(cropImage, {
+  aspectRatio: 1,
+  viewMode: 1,
+  dragMode: 'move',
+  autoCropArea: 1,
+  movable: true,
+  zoomable: true,
+  rotatable: true,
+  scalable: false,
+  cropBoxMovable: false,
+  cropBoxResizable: false,
+  background: false,
+  guides: false,
+  highlight: false,
+});
+
 
       zoomRange.value = 1;
     };

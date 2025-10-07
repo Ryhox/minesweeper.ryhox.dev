@@ -1567,7 +1567,11 @@ option:focus {
 .inputIcon {
   position: absolute;
   left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
 }
+
 .g-recaptcha {
   transform: scale(0.84);
   border-radius: 20px;
@@ -2036,6 +2040,7 @@ background-color: lightcoral;
 
 .stats-selection {
     width: 80%;
+    min-width: 600px;
     margin: 0 auto 20px auto; 
     display: flex;
     justify-content: space-between;
@@ -2047,7 +2052,7 @@ background-color: lightcoral;
     border: 1px solid #494949;
 }
 
-
+/* I */
 .mode-selection {
     display: flex;
     gap: 10px;
@@ -2292,6 +2297,70 @@ background-color: lightcoral;
 
 .search-wrapper.expanded .search-btn.close-btn:hover {
     color: white;
+}
+
+.forgot-password {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #aaa;
+    background-color: transparent;
+    text-align: right;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+/* Modal Styles */
+.modall {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modall-content {
+  background-color: #2a2a2a;
+  padding: 30px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.close {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #d1d1d1;
+}
+
+.close:hover {
+  color: #fff;
+}
+
+.forgot-password {
+  background: none;
+  border: none;
+  color: #d1d1d1;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+  padding: 0;
+  width: auto;
+}
+
+.forgot-password:hover {
+  color: #fff;
 }
 
 .autocomplete-list {
@@ -2643,6 +2712,22 @@ display: none;
   width: 100%;
   accent-color: rgb(199, 199, 199);
 }
+#cropModal .cropper-view-box,
+#cropModal .cropper-face {
+  border-radius: 50% !important;
+  overflow: hidden;
+  outline: none !important;
+  border: 2px solid #fff;
+}
+
+#cropModal .cropper-drag-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
 
 
 .cropModal-buttons {
@@ -2855,7 +2940,7 @@ display: none;
 }
 
 .chord-highlight {
-  background-color: #e0e0e0 !important;
+  background-color: #e0e0e075 !important;
 }
 
 .mine-hit {
@@ -2869,12 +2954,33 @@ display: none;
   100% { transform: scale(1); }
 }
 
+.leaderboard-cell.username {
+  display: flex;
+  align-items: center;
+}
+.leaderboard-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 10px;
+}
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
 
-.gridCell.revealed[data-number="1"] { color: blue; }
-.gridCell.revealed[data-number="2"] { color: green; }
-.gridCell.revealed[data-number="3"] { color: red; }
-.gridCell.revealed[data-number="4"] { color: darkblue; }
-.gridCell.revealed[data-number="5"] { color: darkred; }
-.gridCell.revealed[data-number="6"] { color: teal; }
-.gridCell.revealed[data-number="7"] { color: black; }
-.gridCell.revealed[data-number="8"] { color: gray; }
+#profileAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.stats-profile-title {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}

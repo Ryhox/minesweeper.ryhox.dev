@@ -87,8 +87,13 @@ function initGame() {
 
     const gridElement = document.getElementById('minesweeperGrid');
     if (!gridElement) return;
+    
     gridElement.innerHTML = '';
-
+    
+    gridElement.replaceWith(gridElement.cloneNode(true));
+    
+    const newGridElement = document.getElementById('minesweeperGrid');
+    
     for (let y = 0; y < GRID_HEIGHT; y++) {
         const row = document.createElement('div');
         row.className = 'gridRow';
@@ -99,7 +104,7 @@ function initGame() {
             cell.dataset.y = y;
             row.appendChild(cell);
         }
-        gridElement.appendChild(row);
+        newGridElement.appendChild(row);
     }
 
     const flagCounter = document.getElementById('flagCounter');
@@ -269,7 +274,7 @@ function revealFullGrid() {
             if (!cell) continue;
             cell.classList.add('revealed');
             if (grid[y][x] === 'X') {
-                cell.textContent = '💣';
+                cell.textContent = 'X';
                 cell.classList.add('mine');
             } else {
                 cell.textContent = grid[y][x] || '';
@@ -333,12 +338,15 @@ function installChordHandlers() {
         unflagged.forEach(([nx, ny]) => {
             const key = `${nx},${ny}`;
             if (!revealedCells.has(key)) {
-                revealedCells.add(key);
-                const cell = document.querySelector(`[data-x="${nx}"][data-y="${ny}"]`);
-                if (!cell) return;
-                cell.classList.add('revealed');
-                cell.textContent = grid[ny][nx] || '';
-                if (grid[ny][nx] === 0) floodFill(nx, ny);
+                if (grid[ny][nx] === 0) {
+                    floodFill(nx, ny);
+                } else {
+                    revealedCells.add(key);
+                    const cell = document.querySelector(`[data-x="${nx}"][data-y="${ny}"]`);
+                    if (!cell) return;
+                    cell.classList.add('revealed');
+                    cell.textContent = grid[ny][nx] || '';
+                }
             }
         });
         checkWin();
@@ -368,21 +376,27 @@ function installChordHandlers() {
         }
     });
 
-    gridElement.addEventListener('contextmenu', e => {
-        e.preventDefault();
-        const cell = e.target.closest('.gridCell');
-        if (!cell) return;
-        const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
+gridElement.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const cell = e.target.closest('.gridCell');
+    if (!cell) return;
+    const x = parseInt(cell.dataset.x), y = parseInt(cell.dataset.y);
 
-        if (cell.classList.contains('revealed') && !isNaN(+cell.textContent) && +cell.textContent > 0) {
-            const requiredFlags = +cell.textContent;
-            const currentFlags = countFlagsAround(x, y);
-            if (requiredFlags === currentFlags) chordReveal(x, y);
-            else handleRightClick(x, y);
-        } else handleRightClick(x, y);
+    document.querySelectorAll('.chord-highlight').forEach(c => c.classList.remove('chord-highlight'));
 
-        document.querySelectorAll('.chord-highlight').forEach(c => c.classList.remove('chord-highlight'));
-    });
+    if (cell.classList.contains('revealed') && !isNaN(+cell.textContent) && +cell.textContent > 0) {
+        const requiredFlags = +cell.textContent;
+        const currentFlags = countFlagsAround(x, y);
+        
+        if (requiredFlags === currentFlags) {
+            chordReveal(x, y);
+        } else {
+            handleRightClick(x, y);
+        }
+    } else {
+        handleRightClick(x, y);
+    }
+});
 
     gridElement.addEventListener('mouseup', e => {
         if (e.button === 0) leftMouseDown = false;

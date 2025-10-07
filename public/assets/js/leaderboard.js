@@ -15,7 +15,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('Failed to fetch leaderboard data');
             }
             const data = await response.json();
-            renderLeaderboard(data);
+
+            // Fetch UID for each player using /api/getStats/:username
+            const playersWithUid = await Promise.all(
+                data.map(async player => {
+                    try {
+                        const statsRes = await fetch(`/api/getStats/${encodeURIComponent(player.username)}`);
+                        if (!statsRes.ok) throw new Error();
+                        const stats = await statsRes.json();
+                        return { ...player, uid: stats.uid };
+                    } catch {
+                        return { ...player, uid: null };
+                    }
+                })
+            );
+
+            renderLeaderboard(playersWithUid);
         } catch (error) {
             console.error('Leaderboard error:', error);
             leaderboardContainer.innerHTML = '<div class="leaderboard-empty">Could not load leaderboard.</div>';
@@ -29,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const valueHeader = currentMode === 'multiplayer' ? 'Wins' : 'Best Time';
-        
+
         let tableHTML = `
             <div class="leaderboard-table">
                 <div class="leaderboard-header">
@@ -40,11 +55,25 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
 
         data.forEach(player => {
+            let avatarImg;
+            if (player.uid) {
+                const avatarPng = `/profile_pics/${player.uid}.png?v=${Date.now()}`;
+                const avatarJpg = `/profile_pics/${player.uid}.jpg?v=${Date.now()}`;
+            avatarImg = `
+            <img class="leaderboard-avatar" src="${avatarPng}" alt="avatar" 
+              onerror="this.onerror=null;this.src='${avatarJpg}';">
+            `;
+
+            } else {
+                avatarImg = `
+                    <img class="leaderboard-avatar" src="/assets/images/icon.png" alt="avatar">
+                `;
+            }
             const displayValue = currentMode === 'multiplayer' ? player.value : `${player.value}s`;
             tableHTML += `
                 <a href="/stats/${encodeURIComponent(player.username)}" class="leaderboard-row">
                     <div class="leaderboard-cell rank">${player.rank}</div>
-                    <div class="leaderboard-cell username">${player.username}</div>
+                    <div class="leaderboard-cell username">${avatarImg}${player.username}</div>
                     <div class="leaderboard-cell value">${displayValue}</div>
                 </a>
             `;

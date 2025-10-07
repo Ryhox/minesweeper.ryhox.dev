@@ -724,7 +724,7 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
     socket.emit('lobbyChatJoined');
     socket.to('chat_' + lobby).emit('lobbyChatMessage', {
       type: 'system',
-      message: `${username} joined the chat.`,
+      message: `${username} joined.`,
       timestamp: Date.now()
     });
   });
@@ -750,7 +750,7 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
     if (socket.lobbyChatRoom && socket.lobbyChatUser) {
       socket.to(socket.lobbyChatRoom).emit('lobbyChatMessage', {
         type: 'system',
-        message: `${socket.lobbyChatUser} left the chat.`,
+        message: `${socket.lobbyChatUser} left.`,
         timestamp: Date.now()
       });
     }

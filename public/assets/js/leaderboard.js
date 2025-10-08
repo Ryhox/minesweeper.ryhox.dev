@@ -37,51 +37,52 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function renderLeaderboard(data) {
-        if (!data || data.length === 0) {
-            leaderboardContainer.innerHTML = '<div class="leaderboard-empty">No players on the leaderboard for this filter.</div>';
-            return;
-        }
-
-        const valueHeader = currentMode === 'multiplayer' ? 'Wins' : 'Best Time';
-
-        let tableHTML = `
-            <div class="leaderboard-table">
-                <div class="leaderboard-header">
-                    <div class="leaderboard-cell rank">#</div>
-                    <div class="leaderboard-cell username">Player</div>
-                    <div class="leaderboard-cell value">${valueHeader}</div>
-                </div>
-        `;
-
-        data.forEach(player => {
-            let avatarImg;
-            if (player.uid) {
-                const avatarPng = `/profile_pics/${player.uid}.png?v=${Date.now()}`;
-                const avatarJpg = `/profile_pics/${player.uid}.jpg?v=${Date.now()}`;
-            avatarImg = `
-            <img class="leaderboard-avatar" src="${avatarPng}" alt="avatar" 
-              onerror="this.onerror=null;this.src='${avatarJpg}';">
-            `;
-
-            } else {
-                avatarImg = `
-                    <img class="leaderboard-avatar" src="/assets/images/icon.png" alt="avatar">
-                `;
-            }
-            const displayValue = currentMode === 'multiplayer' ? player.value : `${player.value}s`;
-            tableHTML += `
-                <a href="/stats/${encodeURIComponent(player.username)}" class="leaderboard-row">
-                    <div class="leaderboard-cell rank">${player.rank}</div>
-                    <div class="leaderboard-cell username">${avatarImg}${player.username}</div>
-                    <div class="leaderboard-cell value">${displayValue}</div>
-                </a>
-            `;
-        });
-
-        tableHTML += '</div>';
-        leaderboardContainer.innerHTML = tableHTML;
+function renderLeaderboard(data) {
+    if (!data || data.length === 0) {
+        leaderboardContainer.innerHTML = '<div class="leaderboard-empty">No players on the leaderboard for this filter.</div>';
+        return;
     }
+
+    const valueHeader = currentMode === 'multiplayer' ? 'Wins' : 'Best Time';
+
+    let tableHTML = `
+        <div class="leaderboard-table">
+            <div class="leaderboard-header">
+                <div class="leaderboard-cell rank">#</div>
+                <div class="leaderboard-cell username">Player</div>
+                <div class="leaderboard-cell value">${valueHeader}</div>
+            </div>
+    `;
+
+    data.forEach(player => {
+        let avatarImg;
+        if (player.uid) {
+            const avatarPng = `/profile_pics/${player.uid}.png?v=${Date.now()}`;
+            const avatarJpg = `/profile_pics/${player.uid}.jpg?v=${Date.now()}`;
+            
+            avatarImg = `
+                <img class="leaderboard-avatar" src="${avatarPng}" alt="avatar" 
+                    onerror="this.onerror=null; this.src='${avatarJpg}'; this.onerror=function(){this.src='/assets/images/icon.png';}">
+            `;
+        } else {
+            avatarImg = `
+                <img class="leaderboard-avatar" src="/assets/images/icon.png" alt="avatar">
+            `;
+        }
+        
+        const displayValue = currentMode === 'multiplayer' ? player.value : `${player.value}s`;
+        tableHTML += `
+            <a href="/stats/${encodeURIComponent(player.username)}" class="leaderboard-row">
+                <div class="leaderboard-cell rank">${player.rank}</div>
+                <div class="leaderboard-cell username">${avatarImg}${player.username}</div>
+                <div class="leaderboard-cell value">${displayValue}</div>
+            </a>
+        `;
+    });
+
+    tableHTML += '</div>';
+    leaderboardContainer.innerHTML = tableHTML;
+}
 
     modeButtons.forEach(button => {
         button.addEventListener('click', () => {

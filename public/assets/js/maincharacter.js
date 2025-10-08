@@ -5,66 +5,105 @@ document.addEventListener('DOMContentLoaded', function() {
   const signInBtn = document.getElementById('signInBtn');
   const logoutBtn = document.getElementById('dropdownLogout');
 
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+      userIcon.style.display = 'flex';
+      signInBtn.style.display = 'none';
+      dropdownEmail.textContent = user.displayName || '';
 
+      const statsBtn = document.getElementById('dropdownStats');
+      if (user.displayName) {
+        statsBtn.href = `/stats`; 
+      } else {
+        statsBtn.href = '#';
+        statsBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          alert('No username set... weird... report it.');
+        });
+      }
 
-firebase.auth().onAuthStateChanged(function(user) {
-  if (user) {
-    userIcon.style.display = 'flex';
-    signInBtn.style.display = 'none';
-    dropdownEmail.textContent = user.displayName || '';
+      const myStatsBtn = document.getElementById("myStatsBtn");
+      if (myStatsBtn) {
+        myStatsBtn.style.display = 'inline-block'; 
+        myStatsBtn.onclick = () => {
+          window.location.href = `/stats/${encodeURIComponent(user.displayName)}`;
+        };
+      }
 
-    const statsBtn = document.getElementById('dropdownStats');
-    if (user.displayName) {
-      statsBtn.href = `/stats`; 
-    } else {
-      statsBtn.href = '#';
-      statsBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        alert('No username set... weird... report it.');
-      });
-    }
-
-    const myStatsBtn = document.getElementById("myStatsBtn");
-    if (myStatsBtn) {
-      myStatsBtn.style.display = 'inline-block'; 
-      myStatsBtn.onclick = () => {
-        window.location.href = `/stats/${encodeURIComponent(user.displayName)}`;
-      };
-    }
-
-    const headerAvatar = document.getElementById('headerAvatar');
-    const headerAvatarFallback = document.getElementById('headerAvatarFallback');
-    const dropdownAvatar = document.getElementById('dropdownAvatar');
-    const dropdownAvatarFallback = document.getElementById('dropdownAvatarFallback');
-    if (user.uid) {
-      const png = `/profile_pics/${user.uid}.png?v=${Date.now()}`;
-      const jpg = `/profile_pics/${user.uid}.jpg?v=${Date.now()}`;
-      fetch(png, { method: 'HEAD' }).then(r => {
-        if (r.ok) {
-          if (headerAvatar) { headerAvatar.src = png; headerAvatar.style.display = 'inline-block'; }
-          if (headerAvatarFallback) headerAvatarFallback.style.display = 'none';
-          if (dropdownAvatar) { dropdownAvatar.src = png; dropdownAvatar.style.display = 'inline-block'; }
-          if (dropdownAvatarFallback) dropdownAvatarFallback.style.display = 'none';
-        } else {
-          fetch(jpg, { method: 'HEAD' }).then(r2 => {
-            if (r2.ok) {
-              if (headerAvatar) { headerAvatar.src = jpg; headerAvatar.style.display = 'inline-block'; }
-              if (headerAvatarFallback) headerAvatarFallback.style.display = 'none';
-              if (dropdownAvatar) { dropdownAvatar.src = jpg; dropdownAvatar.style.display = 'inline-block'; }
-              if (dropdownAvatarFallback) dropdownAvatarFallback.style.display = 'none';
+      const headerAvatar = document.getElementById('headerAvatar');
+      const headerAvatarFallback = document.getElementById('headerAvatarFallback');
+      const dropdownAvatar = document.getElementById('dropdownAvatar');
+      const dropdownAvatarFallback = document.getElementById('dropdownAvatarFallback');
+      
+      if (user.uid) {
+        const png = `/profile_pics/${user.uid}.png?v=${Date.now()}`;
+        const jpg = `/profile_pics/${user.uid}.jpg?v=${Date.now()}`;
+        
+        fetch(png, { method: 'HEAD' }).then(r => {
+          if (r.ok) {
+            if (headerAvatar) { 
+              headerAvatar.src = png; 
+              headerAvatar.style.display = 'inline-block'; 
             }
-          }).catch(() => {});
-        }
-      }).catch(() => {});
-    }
-  } else {
-    userIcon.style.display = 'none';
-    userDropdown.classList.remove('active');
-    signInBtn.style.display = 'inline-block';
-    dropdownEmail.textContent = '';
-  }
-});
+            if (headerAvatarFallback) headerAvatarFallback.style.display = 'none';
+            if (dropdownAvatar) { 
+              dropdownAvatar.src = png;  
+              dropdownAvatar.style.display = 'inline-block'; 
+            }
+            if (dropdownAvatarFallback) dropdownAvatarFallback.style.display = 'none';
+          } else {
+            fetch(jpg, { method: 'HEAD' }).then(r2 => {
+              if (r2.ok) {
+                if (headerAvatar) { 
+                  headerAvatar.src = jpg; 
+                  headerAvatar.style.display = 'inline-block'; 
+                }
+                if (headerAvatarFallback) headerAvatarFallback.style.display = 'none';
+                if (dropdownAvatar) { 
+                  dropdownAvatar.src = jpg; 
+                  dropdownAvatar.style.display = 'inline-block'; 
+                }
+                if (dropdownAvatarFallback) dropdownAvatarFallback.style.display = 'none';
+              } else {
+                showFallbackAvatar();
+              }
+            }).catch(() => {
+              showFallbackAvatar();
+            });
+          }
+        }).catch(() => {
+          showFallbackAvatar();
+        });
+      } else {
+        userIcon.style.display = 'none';
+        userDropdown.classList.remove('active');
+        signInBtn.style.display = 'inline-block';
+        dropdownEmail.textContent = '';
+      }
 
+      function showFallbackAvatar() {
+
+        const fallbackImageUrl = '/assets/images/icon.png';
+
+        if (headerAvatar) {
+          headerAvatar.src = fallbackImageUrl;
+          headerAvatar.style.display = 'inline-block';
+        }
+        if (dropdownAvatar) {
+          dropdownAvatar.src = fallbackImageUrl;
+          dropdownAvatar.style.display = 'inline-block';
+        }
+
+        if (headerAvatarFallback) headerAvatarFallback.style.display = 'none';
+        if (dropdownAvatarFallback) dropdownAvatarFallback.style.display = 'none';
+      }
+    } else {
+      userIcon.style.display = 'none';
+      userDropdown.classList.remove('active');
+      signInBtn.style.display = 'inline-block';
+      dropdownEmail.textContent = '';
+    }
+  });
 
   userIcon.addEventListener('click', function(e) {
     userDropdown.classList.toggle('active');
@@ -84,8 +123,6 @@ firebase.auth().onAuthStateChanged(function(user) {
       location.reload();
     });
   });
-});
-
 
   const backButton = document.getElementById('backButtonIndex');
   if (backButton) {
@@ -93,3 +130,4 @@ firebase.auth().onAuthStateChanged(function(user) {
       window.location.href = '/';
     };
   }
+});

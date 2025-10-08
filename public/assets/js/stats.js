@@ -67,17 +67,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function populateStats(stats) {
+    async function populateStats(stats) {
         if (stats.uid) {
-
-            const pngUrl = `/profile_pics/${stats.uid}.png?v=${Date.now()}`;
-            const jpgUrl = `/profile_pics/${stats.uid}.jpg?v=${Date.now()}`;
             const avatarImg = document.getElementById('profileAvatar');
-            avatarImg.onerror = function () {
-                avatarImg.onerror = null;
-                avatarImg.src = jpgUrl;
+            const avatarUrl = await getAvatarUrl(stats.uid);
+            avatarImg.src = avatarUrl;
+            avatarImg.onerror = function() {
+                this.src = '/assets/images/icon.png';
+                this.onerror = null;
             };
-            avatarImg.src = pngUrl;
+        } else {
+            const avatarImg = document.getElementById('profileAvatar');
+            avatarImg.src = '/assets/images/icon.png';
+            avatarImg.onerror = null;
         }
 
         const multiplayerData = stats.multiplayer || {};
@@ -98,6 +100,23 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('#combined-stats .info-value').forEach((el, index) => {
             el.textContent = combinedData[cmbKeys[index]] ?? 'N/A';
         });
+    }
+
+    async function getAvatarUrl(uid) {
+        const extensions = ['png', 'jpg'];
+        
+        for (const ext of extensions) {
+            const avatarUrl = `/profile_pics/${uid}.${ext}`;
+            try {
+                const response = await fetch(avatarUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    return avatarUrl + '?v=' + Date.now();
+                }
+            } catch (error) {
+               
+            }
+        }
+        return '/assets/images/icon.png';
     }
 
     const auth = firebase.auth();

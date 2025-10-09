@@ -120,13 +120,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         existingError.remove();
       }
 
-      // Input-Felder ausblenden mit Animation
       messageInput.style.opacity = '0';
       messageInput.style.transform = 'translateY(10px)';
       sendButton.style.opacity = '0';
       sendButton.style.transform = 'translateY(10px)';
       
-      // Nach kurzer Verzögerung Error anzeigen
       setTimeout(() => {
         const errorElement = document.createElement('div');
         errorElement.className = 'message-error';
@@ -145,13 +143,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         messageInput.parentNode.insertBefore(errorElement, messageInput.nextSibling);
 
-        // Nach 2 Sekunden Error entfernen und Input-Felder wieder einblenden
         setTimeout(() => {
           if (errorElement.parentNode) {
             errorElement.remove();
           }
           
-          // Input-Felder wieder einblenden
           messageInput.style.opacity = '1';
           messageInput.style.transform = 'translateY(0)';
           sendButton.style.opacity = '1';
@@ -159,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           
         }, 2000);
         
-      }, 300); // Kurze Verzögerung bevor Error erscheint
+      }, 300);
     }
 
     async function sendMessage() {

@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const data = await response.json();
 
-            // Fetch UID for each player using /api/getStats/:username
             const playersWithUid = await Promise.all(
                 data.map(async player => {
                     try {

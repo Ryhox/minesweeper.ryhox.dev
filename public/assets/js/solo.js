@@ -19,10 +19,6 @@ let gameTime = 0;
 let leftMouseDown = false;
 let rightMouseDown = false;
 
-function showCustomAlert(message) {
-    alert(message);
-}
-
 async function saveSoloGameResult(won, time, mineHits) {
     if (GRID_WIDTH < 10 || GRID_HEIGHT < 10 || MINE_COUNT < 15) return;
     const user = firebase.auth().currentUser;
@@ -45,33 +41,29 @@ async function getBestTime() {
     const user = firebase.auth().currentUser;
     if (!user) return null;
     try {
-        const token = await user.getIdToken();
-        const res = await fetch('/api/getBestTime', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-        });
-        const data = await res.json();
-        return data.bestTime || null;
-    } catch (err) {
-        console.error("Failed to get best time:", err);
+        let username = user.displayName;
+        if (!username && user.email) {
+            username = user.email.split('@')[0];
+        }
+        if (!username) {
+            console.warn('No username found for current user');
+            return null;
+        }
+        const res = await fetch(`/api/getStats/${encodeURIComponent(username)}`);
+        if (!res.ok) {
+            return null;
+        }
+        const stats = await res.json();
+        if (stats.singleplayer && stats.singleplayer.fastestTime) {
+            let t = stats.singleplayer.fastestTime;
+            if (typeof t === 'string' && t.endsWith('s')) t = t.slice(0, -1);
+            t = Number(t);
+            if (isFinite(t)) return t;
+        }
         return null;
-    }
-}
-
-async function saveBestTime(time) {
-    if (GRID_WIDTH !== DEFAULT_GRID_WIDTH || GRID_HEIGHT !== DEFAULT_GRID_HEIGHT || MINE_COUNT !== DEFAULT_MINE_COUNT) return;
-    const user = firebase.auth().currentUser;
-    if (!user) return;
-    try {
-        const token = await user.getIdToken();
-        await fetch('/api/saveBestTime', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, time })
-        });
     } catch (err) {
-        console.error("Failed to save best time:", err);
+        console.error('Exception:', err);
+        return null;
     }
 }
 
@@ -263,7 +255,7 @@ async function showWinModal(timeTaken, won = true) {
 
     if (winTime) winTime.textContent = timeTaken;
     if (bestTimeElement) bestTimeElement.textContent = bestTime || 'N/A';
-    if (winMessage) winMessage.textContent = won ? '🎉 Gewonnen!' : '💥 Verloren!';
+    if (winMessage) winMessage.textContent = won ? '🎉 WIN!' : '💥 LOST!';
     if (soloWinModal) soloWinModal.style.display = 'flex';
 }
 
@@ -430,9 +422,9 @@ function applySettings() {
     const h = parseInt(document.getElementById('inputHeight').value);
     const m = parseInt(document.getElementById('inputMines').value);
 
-    if (isNaN(w) || isNaN(h) || isNaN(m)) { showCustomAlert('Bitte gültige Zahlen eingeben!'); return; }
-    if (w < 5 || w > 25 || h < 5 || h > 25) { showCustomAlert('Breite/Höhe: 5–25'); return; }
-    if (m < 1 || m >= w * h) { showCustomAlert('Minenanzahl ungültig'); return; }
+    if (isNaN(w) || isNaN(h) || isNaN(m)) { showCustomAlert('Put in a number'); return; }
+    if (w < 5 || w > 25 || h < 5 || h > 25) { showCustomAlert('Width/Height: 5–25'); return; }
+    if (m < 1 || m >= w * h) { showCustomAlert('MORE MINESS!'); return; }
 
     GRID_WIDTH = w; GRID_HEIGHT = h; MINE_COUNT = m;
     flagsLeft = MINE_COUNT;
@@ -483,4 +475,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (backButton) backButton.onclick = () => { window.location.href = '/'; };
 
     initGame();
+    displayBestTime(); 
 });
+
+async function displayBestTime() {
+    const bestTimeElement = document.getElementById('bestTime');
+    if (bestTimeElement) {
+        try {
+            const bestTime = await getBestTime();
+            bestTimeElement.textContent = bestTime !== null ? bestTime : 'N/A';
+        } catch (err) {
+            bestTimeElement.textContent = 'Error';
+            console.error('[displayBestTime] Error:', err);
+        }
+    }
+}

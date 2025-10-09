@@ -81,18 +81,22 @@
 - Add profile picture to stats (so everyone can see the profile Picture)
 - Added Maxi feature to Multiplayer
 - can send pictures per chat (only add url)
-- fixed login
+- fixed login (and slight rework)
+
+# 09.10.2025
+- Small Bug fixes
+- fixed Maxi feature on multiplayer
+- reworked Flexbox (mobile)
  
 # TODO
 
     1. Quality of Life (refresh button [Lobby Browse])
     2. Multiplayer when one died there should be the name red for everyone and when you made 100% there is you won instead of spectate (button below to spctate)
-    3. difficulties doesn't Work
+    3. BUG: difficulties doesn't Work
     4. Optimize for Mobile 
     5. Tags (admin)
-    6. Optimize Flexbox (stats)
-    7. Add sound
-    9. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
-    10. Login Page Rework (Change Password on Login [Forgot Password])
-    12. Rework Flexbox
-    13. Emotes in chat with (:)
+    6. Add sound
+    7. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
+    8. BUG: Our Spectation logic doesnt handle Dead Players. - also somehow i can reconnect in another lobby..?
+    9. Add that even when the lobby is full people can spectate and chat its like MINECRAFT!!!!!
+    10. Add a Live Updating Journey (Changelog.MD) with pictures and so on!!

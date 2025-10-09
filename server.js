@@ -38,7 +38,6 @@ app.get('/lobby', (req, res) => {
   res.send(`<script>window.history.back();</script>`);
 });
 
-// Constants
 const RENAME_COOLDOWN_DAYS = 14;
 const DIFFICULTY_SETTINGS = {
   easy: { rows: 10, cols: 10, mines: 10 },
@@ -54,11 +53,10 @@ const playerSessions = {};
 const lobbyTimeouts = {};
 const lobbyChats = {};
 
-// Ensure directories exist
 if (!fs.existsSync(USER_DATA_DIR)) fs.mkdirSync(USER_DATA_DIR, { recursive: true });
 if (!fs.existsSync(PROFILE_PICS_DIR)) fs.mkdirSync(PROFILE_PICS_DIR, { recursive: true });
 
-// Utility functions
+
 function getUidFromSocketId(socketId) {
   return playerSessions[socketId]?.uid;
 }
@@ -149,19 +147,22 @@ function getInitialRevealed(grid, startX, startY, rows, cols) {
 
 function calculateProgress(gameState, playerState) {
   const totalSafeCells = gameState.rows * gameState.cols - gameState.mines;
-  const playerRevealedCells = playerState.revealedCells.filter(
-    cell => !playerState.initialRevealedCells.some(
-      init => init.x === cell.x && init.y === cell.y
-    )
-  );
-  const playerRevealedSafeCells = playerRevealedCells.filter(
-    cell => gameState.grid[cell.y][cell.x] !== 'X'
+  
+  const playerRevealedSafeCells = playerState.revealedCells.filter(
+    cell => 
+      gameState.grid[cell.y][cell.x] !== 'X' && 
+      !playerState.initialRevealedCells.some( 
+        init => init.x === cell.x && init.y === cell.y
+      )
   ).length;
+  
   const revealableCells = totalSafeCells - playerState.initialRevealedCells.length;
+  
   if (revealableCells <= 0) return 100;
-  return Math.min(100, Math.floor((playerRevealedSafeCells / revealableCells) * 100));
+  
+  const progress = Math.min(100, Math.floor((playerRevealedSafeCells / revealableCells) * 100));
+  return progress;
 }
-
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 app.use('/profile_pics', express.static(PROFILE_PICS_DIR));
@@ -173,7 +174,13 @@ app.get('/lobby/:code', (req, res) => {
 });
 
 app.get('/api/lobbies', (req, res) => {
-  res.json(Object.values(lobbies).map(l => ({ code: l.code, players: l.users.length, maxPlayers: l.maxPlayers, difficulty: l.difficulty })));
+  res.json(Object.values(lobbies).map(l => ({ 
+    code: l.code, 
+    players: l.users.length, 
+    maxPlayers: l.maxPlayers, 
+    difficulty: l.difficulty,
+    host: l.host.name
+  })));
 });
 
 app.get('/api/getLeaderboard', (req, res) => {
@@ -637,7 +644,8 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
     const playerState = gameState.playerStates[socket.id];
     
     if (!playerState || playerState.status !== 'alive') return;
-    
+      const revealed = playerState.revealedCells.some(c => c.x === x && c.y === y);
+  if (revealed) return; 
     const flagIndex = playerState.flags.findIndex(
       flag => flag.x === x && flag.y === y
     );
@@ -965,7 +973,6 @@ function checkGameCompletion(lobby) {
                 };
             });
 
-        // DEbug console.log('Game completion results:', JSON.stringify(results, null, 2));
 
 let winnerIds = new Set();
 
@@ -1052,10 +1059,126 @@ const finalResults = results.map(r => ({
         }
     }
 }
+
+socket.on('chordReveal', ({ x, y }) => {
+  const P = playerSessions[socket.id];
+  if (!P?.lobby) return;
+  const L = lobbies[P.lobby];
+  if (L?.status !== 'playing' || L.paused) return;
+
+  const gs = L.gameState;
+  const ps = gs.playerStates[socket.id];
+  if (!ps || ps.status !== 'alive') return;
+
+  const val = gs.grid[y][x];
+  if (val === 'X' || val === 0) return;
+
+  let flagCount = 0;
+  const toReveal = [];
+
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || nx >= gs.cols || ny < 0 || ny >= gs.rows) continue;
+
+      const revealed = ps.revealedCells.some(c => c.x === nx && c.y === ny);
+      const flagged = ps.flags.some(f => f.x === nx && f.y === ny);
+
+      if (flagged) flagCount++;
+      else if (!revealed) toReveal.push({ x: nx, y: ny });
+    }
+  }
+
+  if (flagCount !== val) return;
+
+  const cells = [];
+  let revealedNewCells = false;
+
+  toReveal.forEach(({ x: rx, y: ry }) => {
+    const alreadyRevealed = ps.revealedCells.some(c => c.x === rx && c.y === ry);
+    const isFlagged = ps.flags.some(f => f.x === rx && f.y === ry);
+    if (alreadyRevealed || isFlagged) return;
+
+    revealedNewCells = true;
+    
+    const queue = [{ x: rx, y: ry }];
+    const visited = new Set();
+    visited.add(`${rx},${ry}`);
+
+    while (queue.length) {
+      const { x: cx, y: cy } = queue.shift();
+      
+      if (!ps.revealedCells.some(c => c.x === cx && c.y === cy)) {
+        ps.revealedCells.push({ x: cx, y: cy });
+        cells.push({ x: cx, y: cy, value: gs.grid[cy][cx] });
+
+        if (gs.grid[cy][cx] === 'X') {
+          ps.status = 'dead';
+          ps.endTime = Date.now();
+          ps.time = Math.floor((ps.endTime - ps.startTime - ps.pausedDuration) / 1000);
+          socket.emit('playerFailed', { x: cx, y: cy });
+          io.to(L.code).emit('playerStatusChanged', { playerId: socket.id, status: 'dead' });
+          checkGameCompletion(L);
+          return;
+        }
+
+        if (gs.grid[cy][cx] === 0) {
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const nx = cx + dx;
+              const ny = cy + dy;
+              if (nx < 0 || nx >= gs.cols || ny < 0 || ny >= gs.rows) continue;
+              const key = `${nx},${ny}`;
+              if (visited.has(key)) continue;
+              const isRevealed = ps.revealedCells.some(c => c.x === nx && c.y === ny);
+              const isFlagged = ps.flags.some(f => f.x === nx && f.y === ny);
+              if (!isRevealed && !isFlagged) {
+                visited.add(key);
+                queue.push({ x: nx, y: ny });
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (revealedNewCells && cells.length > 0) {
+    ps.progress = calculateProgress(gs, ps);
+    
+    socket.emit('gameUpdate', { cells, revealed: ps.revealedCells });
+    L.spectators.forEach(sp => {
+      if (sp.spectating === socket.id) {
+        io.to(sp.id).emit('gameUpdate', { cells, revealed: ps.revealedCells });
+      }
+    });
+
+    updateProgress(L);
+    
+    const totalSafeCells = gs.rows * gs.cols - gs.mines;
+    const revealedSafeCells = ps.revealedCells.filter(
+      cell => gs.grid[cell.y][cell.x] !== 'X'
+    ).length;
+    
+    if (revealedSafeCells === totalSafeCells && ps.status === 'alive') {
+      ps.status = 'finished';
+      ps.endTime = Date.now();
+      ps.time = Math.floor((ps.endTime - ps.startTime - ps.pausedDuration) / 1000);
+      
+      io.to(L.code).emit('playerStatusChanged', {
+        playerId: socket.id,
+        status: 'finished'
+      });
+      
+      checkGameCompletion(L);
+    }
+  }
 });
 
 
-
+});
 
 
 app.get('/stats/:username', (req, res) => {
@@ -1318,7 +1441,6 @@ app.post('/api/createUser', (req, res) => {
   }
 });
 
-// Upload a profile picture (expects { token, image: dataURL })
 app.post('/api/uploadProfilePic', async (req, res) => {
   const { token, image } = req.body || {};
   if (!token || !image) return res.status(400).json({ error: 'Missing token or image' });
@@ -1327,7 +1449,6 @@ app.post('/api/uploadProfilePic', async (req, res) => {
     const decoded = await admin.auth().verifyIdToken(token);
     const uid = decoded.uid;
 
-    // Data URL -> extract mime and base64
     const match = image.match(/^data:(image\/(png|jpeg|jpg));base64,(.+)$/);
     if (!match) return res.status(400).json({ error: 'Invalid image format' });
 
@@ -1337,13 +1458,11 @@ app.post('/api/uploadProfilePic', async (req, res) => {
     const ext = (extRaw === 'jpeg' || extRaw === 'jpg') ? 'jpg' : 'png';
 
     const buffer = Buffer.from(base64Data, 'base64');
-    const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+    const MAX_BYTES = 5 * 1024 * 1024;
     if (buffer.length > MAX_BYTES) return res.status(400).json({ error: 'File too large' });
 
-    // ensure dir
     if (!fs.existsSync(PROFILE_PICS_DIR)) fs.mkdirSync(PROFILE_PICS_DIR, { recursive: true });
 
-    // remove existing images for uid (png/jpg)
     const pngPath = path.join(PROFILE_PICS_DIR, `${uid}.png`);
     const jpgPath = path.join(PROFILE_PICS_DIR, `${uid}.jpg`);
     try { if (fs.existsSync(pngPath)) fs.unlinkSync(pngPath); } catch (e) {}

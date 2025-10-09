@@ -202,9 +202,9 @@ const cropResetBtn = document.getElementById('cropResetBtn');
 const zoomRange = document.getElementById('zoomRange');
 
 if (profileAvatarPreview) {
-    profileAvatarPreview.style.cursor = 'pointer'; // show clickable cursor
+    profileAvatarPreview.style.cursor = 'pointer';
     profileAvatarPreview.addEventListener('click', () => {
-        avatarInput.click(); // trigger file input
+        avatarInput.click();
     });
 }
 

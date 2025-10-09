@@ -8,10 +8,13 @@ let spectateTimerInterval;
 let timerInterval;
 let disconnectModalInterval;
 let disconnectCountdown = 10;
+let cols, rows;
 
 let spectating = false;
 let spectatedPlayerId = null;
 let alivePlayers = [];
+let leftMouseDown = false;
+let rightMouseDown = false;
 
 let gameTimer = {
   startTime: null,
@@ -22,9 +25,9 @@ let gameTimer = {
   isPaused: false
 };
 
-
 let username = null;
 const name = null;
+
 function waitForUsername() {
   return new Promise(resolve => {
     if (username) {
@@ -37,13 +40,40 @@ function waitForUsername() {
     }
   });
 }
+
 firebase.auth().onAuthStateChanged(async (user) => {
   if (!user) return;
-
   const token = await user.getIdToken();
   socket.emit('authInit', { token });
 });
 
+const getNeighbors = (x, y) => {
+  const n = [];
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) n.push([nx, ny]);
+    }
+  }
+  return n;
+};
+
+const countFlagsAround = (x, y) =>
+  getNeighbors(x, y).reduce((c, [nx, ny]) => {
+    const cell = document.querySelector(`[data-x="${nx}"][data-y="${ny}"]`);
+    return c + (cell && cell.classList.contains('flagged') ? 1 : 0);
+  }, 0);
+
+socket.on('chordHighlight', ({ cells }) => {
+  document.querySelectorAll('.chord-highlight').forEach(c => c.classList.remove('chord-highlight'));
+  cells.forEach(({ x, y }) => {
+    const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+    if (cell && !cell.classList.contains('revealed') && !cell.classList.contains('flagged')) {
+      cell.classList.add('chord-highlight');
+    }
+  });
+});
 
 function startTimer() {
   stopTimer();
@@ -51,27 +81,23 @@ function startTimer() {
   gameTimer.pausedDuration = 0;
   gameTimer.penaltySeconds = 0;
   gameTimer.isPaused = false;
-  
   gameTimer.interval = setInterval(updateTimerDisplay, 1000);
   updateTimerDisplay();
 }
 
 function pauseTimer() {
   if (gameTimer.isPaused || playerStatus !== 'alive') return;
-  
   clearInterval(gameTimer.interval);
   gameTimer.pauseStart = Date.now();
   gameTimer.isPaused = true;
 }
 
-function resumeTimer() {  
+function resumeTimer() {
   if (!gameTimer.isPaused || playerStatus !== 'alive') return;
-  
   if (gameTimer.pauseStart) {
     gameTimer.pausedDuration += Date.now() - gameTimer.pauseStart;
     gameTimer.pauseStart = null;
   }
-  
   gameTimer.isPaused = false;
   gameTimer.interval = setInterval(updateTimerDisplay, 1000);
   updateTimerDisplay();
@@ -86,17 +112,13 @@ function stopTimer() {
 function updateTimerDisplay() {
   const timerEl = document.getElementById('gameTimer');
   if (!timerEl) return;
-  
   let elapsedSeconds = 0;
   if (gameTimer.startTime) {
-    const baseTime = Math.floor(
-      (Date.now() - gameTimer.startTime - gameTimer.pausedDuration) / 1000
-    );
+    const baseTime = Math.floor((Date.now() - gameTimer.startTime - gameTimer.pausedDuration) / 1000);
     elapsedSeconds = baseTime;
   }
-  
   timerEl.innerHTML = `Time: ${elapsedSeconds}s${
-    gameTimer.penaltySeconds > 0 
+    gameTimer.penaltySeconds > 0
       ? `<span class="penalty-display">+${gameTimer.penaltySeconds}</span>`
       : ''
   }`;
@@ -112,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (backButtonIndex) {
     backButtonIndex.onclick = () => window.location.href = '/';
   }
-
   const backButton = document.getElementById('backButton');
   if (backButton) {
     backButton.onclick = () => {
@@ -132,7 +153,6 @@ if (errorParam) {
       codeError.textContent = `Lobby is full`;
     } else if (errorParam === 'name_taken') {
       codeError.textContent = `Name is already taken in this lobby`;
-
     }
     window.history.replaceState({}, document.title, window.location.pathname);
   }
@@ -144,7 +164,6 @@ if (window.location.pathname === '/lobbycreation') {
     const joinBtn = document.getElementById('joinLobby');
     const codeInput = document.getElementById('lobbyCode');
     const codeError = document.getElementById('codeError');
-
 
     socket.on('lobbyCreated', (code) => {
       window.location.href = `/lobby/${code}`;
@@ -162,16 +181,13 @@ if (window.location.pathname === '/lobbycreation') {
           const modal = document.getElementById('lobbyBrowserModal');
           const list = document.getElementById('lobbyList');
           const noLobbiesMessage = document.getElementById('noLobbiesMessage');
-          
           list.innerHTML = '';
-          
           if (lobbies.length === 0) {
             noLobbiesMessage.style.display = 'block';
-            list.style.display = 'none'; 
+            list.style.display = 'none';
           } else {
             noLobbiesMessage.style.display = 'none';
-            list.style.display = 'block'; 
-            
+            list.style.display = 'block';
             lobbies.forEach(lobby => {
               const lobbyItem = document.createElement('div');
               lobbyItem.className = 'lobby-item';
@@ -184,16 +200,12 @@ if (window.location.pathname === '/lobbycreation') {
                 <button class="join-lobby-btn">Join</button>
               `;
               list.appendChild(lobbyItem);
-              
               lobbyItem.querySelector('.join-lobby-btn').addEventListener('click', async (e) => {
                 const name = await waitForUsername();
                 window.location.href = `/lobby/${lobby.code}`;
-
-
               });
             });
           }
-          
           modal.classList.add('visible');
         })
         .catch(error => {
@@ -230,23 +242,19 @@ if (window.location.pathname === '/lobbycreation') {
 
     createBtn.addEventListener('click', async () => {
       const name = await waitForUsername();
-            console.log("Creating lobby2 with  name:", name);
-
+      console.log("Creating lobby2 with  name:", name);
       localStorage.setItem("playerName", name);
       document.getElementById('difficultyModal').classList.add('visible');
     });
 
     joinBtn.onclick = () => {
       const code = codeInput.value.trim().toUpperCase();
-      
       let hasError = false;
-
       if (!validateCode(code)) {
         codeError.textContent = "Code must be 4 characters (A-Z, 0-9)";
         hasError = true;
       }
       if (hasError) return;
-      
       localStorage.setItem("playerName", name);
       window.location.href = `/lobby/${code}`;
     };
@@ -259,16 +267,12 @@ if (window.location.pathname.startsWith('/lobby/')) {
     spectatedPlayerId = null;
     alivePlayers = [];
     playerStatus = 'alive';
-
     clearInterval(spectateTimerInterval);
     clearInterval(timerInterval);
-
     const code = window.location.pathname.split('/').pop().toUpperCase();
     const name = await waitForUsername();
     console.log("Creating lobby3 with  name:", name);
-
     document.getElementById('readyUp').onclick = () => socket.emit('readyUp');
-
     const codeDisplay = document.getElementById('lobbyCodeDisplay');
     if (codeDisplay) {
       codeDisplay.textContent = code;
@@ -282,37 +286,33 @@ if (window.location.pathname.startsWith('/lobby/')) {
   })();
 }
 
-
-  socket.on('lobbyError', handleLobbyError);
-  socket.on('updateUsers', updatePlayerList);
-  socket.on('countdown', handleCountdown);
-  socket.on('userLeft', handleUserLeft);
-  socket.on('startGame', startGameHandler);
-  socket.on('intermediatePodium', handleIntermediatePodium);
-  socket.on('gameUpdate', handleGameUpdate);
-  socket.on('playerFailed', handlePlayerFailed);
-  socket.on('flagUpdate', handleFlagUpdate);
-  socket.on('progressUpdate', handleProgressUpdate);
-  socket.on('gameOver', handleGameOver);
-  socket.on('playerStatusChanged', handlePlayerStatusChanged);
-  socket.on('spectateUpdate', handleSpectateUpdate);
-  socket.on('gamePaused', handleGamePaused);
-  socket.on('gameResumed', handleGameResumed);
-  socket.on('playerDisconnected', handlePlayerDisconnected);
-  socket.on('reconnectGameData', reconnectGameHandler);
+socket.on('lobbyError', handleLobbyError);
+socket.on('updateUsers', updatePlayerList);
+socket.on('countdown', handleCountdown);
+socket.on('userLeft', handleUserLeft);
+socket.on('startGame', startGameHandler);
+socket.on('intermediatePodium', handleIntermediatePodium);
+socket.on('gameUpdate', handleGameUpdate);
+socket.on('playerFailed', handlePlayerFailed);
+socket.on('flagUpdate', handleFlagUpdate);
+socket.on('progressUpdate', handleProgressUpdate);
+socket.on('gameOver', handleGameOver);
+socket.on('playerStatusChanged', handlePlayerStatusChanged);
+socket.on('spectateUpdate', handleSpectateUpdate);
+socket.on('gamePaused', handleGamePaused);
+socket.on('gameResumed', handleGameResumed);
+socket.on('playerDisconnected', handlePlayerDisconnected);
+socket.on('reconnectGameData', reconnectGameHandler);
 
 socket.on('connect', async () => {
   const inGameSocketId = localStorage.getItem('inGameSocketId');
   const code = window.location.pathname.split('/').pop().toUpperCase();
   const name = await waitForUsername();
-
   if (inGameSocketId && code && name && validateCode(code)) {
     console.log("Reconnect check with ID:", inGameSocketId);
-
     socket.emit('checkPlayerStatus', { playerId: inGameSocketId }, (inGame) => {
       const readyBtn = document.getElementById('readyUp');
       if (!readyBtn) return;
-      
       if (inGame) {
         readyBtn.textContent = 'Reconnect';
         readyBtn.disabled = false;
@@ -338,11 +338,9 @@ socket.on('connect', async () => {
   }
 });
 
-
 socket.on('inGameStatus', (isInGame) => {
   const readyBtn = document.getElementById('readyUp');
   if (!readyBtn) return;
-
   if (isInGame) {
     readyBtn.textContent = 'Reconnect';
     readyBtn.onclick = () => {
@@ -376,7 +374,6 @@ function updatePlayerList(users) {
       </li>
     `}).join('');
   }
-
   const statusEl = document.getElementById('lobbyStatus');
   if (statusEl) {
     if (users.length < 2) {
@@ -392,14 +389,12 @@ function updatePlayerList(users) {
 function handleCountdown(seconds) {
   const timer = document.getElementById('lobbyStatus');
   if (!timer) return;
-  
   if (seconds === -1) {
     timer.style.fontSize = '';
     timer.style.color = '';
     timer.textContent = 'All players must ready up!';
     return;
   }
-  
   if (seconds > 0) {
     timer.style.fontSize = '1.5rem';
     timer.style.color = '#add8e6';
@@ -421,7 +416,9 @@ function handleUserLeft(userId) {
   }
 }
 
-function startGameHandler({ grid, rows, cols, mines, initialRevealed, users }) {
+function startGameHandler({ grid, rows: r, cols: c, mines, initialRevealed, users }) {
+  cols = c;
+  rows = r;
   localStorage.setItem('inGameSocketId', socket.id);
   document.querySelector('.content-box').style.display = 'none';
   const currentUserId = socket.id;
@@ -442,8 +439,65 @@ function startGameHandler({ grid, rows, cols, mines, initialRevealed, users }) {
   `;
 
   const gridElement = document.getElementById('minesweeperGrid');
+
+  /* =========  CHORD-HIGHLIGHT  ========= */
+  let leftDown   = false;
+  let rightDown  = false;
+
+  function clearHighlight() {
+    document.querySelectorAll('.chord-highlight').forEach(c => c.classList.remove('chord-highlight'));
+  }
+
+  gridElement.addEventListener('mousedown', e => {
+    const cell = e.target.closest('.gridCell');
+    if (!cell) return;
+    if (e.button === 0) leftDown  = true;
+    if (e.button === 2) rightDown = true;
+
+    if (leftDown && rightDown && cell.classList.contains('revealed')) {
+      const x = +cell.dataset.x;
+      const y = +cell.dataset.y;
+      const num = +cell.textContent;
+      if (!isNaN(num) && num > 0) {
+        /* -----  INSTANT local highlight  ----- */
+        const neighbours = [];
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+            const nb = document.querySelector(`[data-x="${nx}"][data-y="${ny}"]`);
+            if (nb && !nb.classList.contains('revealed') && !nb.classList.contains('flagged')) {
+              nb.classList.add('chord-highlight');
+              neighbours.push({ x: nx, y: ny });
+            }
+          }
+        }
+        /* -----  ask server to echo to spectators  ----- */
+        socket.emit('chordHighlight', { x, y });
+      }
+    }
+  });
+
+  gridElement.addEventListener('mouseup', e => {
+    if (e.button === 0) leftDown  = false;
+    if (e.button === 2) rightDown = false;
+    clearHighlight();
+  });
+
+  gridElement.addEventListener('contextmenu', e => {
+    const cell = e.target.closest('.gridCell');
+    if (!cell) return;
+    e.preventDefault();
+    const x = +cell.dataset.x, y = +cell.dataset.y;
+    if (cell.classList.contains('revealed')) {
+      socket.emit('chordReveal', { x, y });
+    }
+  });
+  /* ===================================== */
+
   const revealedCells = new Set(initialRevealed.map(c => `${c.x},${c.y}`));
-  
+
   for (let y = 0; y < rows; y++) {
     const row = document.createElement('div');
     row.className = 'gridRow';
@@ -459,24 +513,18 @@ function startGameHandler({ grid, rows, cols, mines, initialRevealed, users }) {
 
 function handleIntermediatePodium({ finishedPlayers, playingPlayers }) {
   alivePlayers = playingPlayers;
-
   if (playerStatus === 'alive') return;
-
   const modal = document.getElementById('intermediatePodiumModal');
   if (!modal || modal.classList.contains('visible')) return;
-
   modal.classList.add('visible');
-
   document.getElementById('closeintermediatePodiumModal').addEventListener('click', () => {
     modal.classList.remove('visible');
     addSpectateButton();
   });
-
   document.getElementById('spectatePlayers').addEventListener('click', () => {
     modal.classList.remove('visible');
     showSpectatePlayersModal();
   });
-
   const spectateBtn = document.getElementById('spectatePlayers');
   if (spectateBtn) {
     spectateBtn.style.display = alivePlayers.length > 0 ? 'block' : 'none';
@@ -501,26 +549,21 @@ function handlePlayerFailed({ x, y }) {
     cell.classList.add('revealed', 'mine');
     cell.textContent = 'X';
   }
-  
   document.querySelectorAll('.gridCell').forEach(cell => {
     cell.onclick = null;
     cell.oncontextmenu = null;
   });
-  
   stopTimer();
-  
 }
 
 function handleFlagUpdate({ userId, x, y, flagged, flagsLeft }) {
   const isSpectator = spectating && spectatedPlayerId === userId;
   if (userId !== socket.id && !isSpectator) return;
-
   const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
   if (cell) {
     cell.classList.toggle('flagged', flagged);
     cell.textContent = flagged ? '🚩' : '';
   }
-  
   const flagCounter = document.getElementById('flagCounter');
   if (flagCounter) {
     flagCounter.textContent = `Flags left: ${flagsLeft}`;
@@ -529,7 +572,6 @@ function handleFlagUpdate({ userId, x, y, flagged, flagsLeft }) {
 
 function handleProgressUpdate(usersProgress) {
   const myId = socket.id;
-    
   usersProgress.forEach(user => {
     let container = document.querySelector(`.progress-container[data-userid="${user.id}"]`);
     if (!container) {
@@ -540,7 +582,6 @@ function handleProgressUpdate(usersProgress) {
       }
       return;
     }
-    
     const progressBar = container.querySelector('.progress-bar');
     if (progressBar) {
       progressBar.value = user.progress;
@@ -558,16 +599,13 @@ function handleGameOver({ results, grid }) {
   if (spectateTimerInterval) clearInterval(spectateTimerInterval);
   revealFullGrid(grid);
   resetSpectation();
-
   const intermediateModal = document.getElementById('intermediatePodiumModal');
   if (intermediateModal) intermediateModal.style.display = 'none';
-
   const modal = document.getElementById('gameOverModal');
   if (modal) {
     const message = document.getElementById('gameOverMessage');
     if (message) message.innerHTML = createPodiumDisplay(results);
     modal.style.display = 'flex';
-
     const rematchButton = document.getElementById('rematchButton');
     if (rematchButton) {
       rematchButton.onclick = () => {
@@ -575,7 +613,6 @@ function handleGameOver({ results, grid }) {
         window.location.href = `/lobby/${lobbyCode}`;
       };
     }
-
     const mainMenuButton = document.getElementById('mainMenuButton');
     if (mainMenuButton) {
       mainMenuButton.onclick = () => {
@@ -592,10 +629,8 @@ function handlePlayerStatusChanged({ playerId, status }) {
       stopTimer();
     }
   }
-
   if (status === 'dead' || status === 'finished') {
     alivePlayers = alivePlayers.filter(player => player.id !== playerId);
-
     if (spectating && spectatedPlayerId === playerId && alivePlayers.length > 0) {
       spectatedPlayerId = alivePlayers[0].id;
       socket.emit('spectatePlayer', alivePlayers[0].id);
@@ -606,15 +641,11 @@ function handlePlayerStatusChanged({ playerId, status }) {
 function handleSpectateUpdate({ grid, rows, cols, revealedCells, flags, time, flagsLeft }) {
   const gridElement = document.getElementById('minesweeperGrid');
   if (!gridElement) return;
-
   if (spectateTimerInterval) {
     clearInterval(spectateTimerInterval);
   }
-
   gridElement.innerHTML = '';
-
   const revealedSet = new Set(revealedCells.map(c => `${c.x},${c.y}`));
-
   for (let y = 0; y < rows; y++) {
     const row = document.createElement('div');
     row.className = 'gridRow';
@@ -623,19 +654,16 @@ function handleSpectateUpdate({ grid, rows, cols, revealedCells, flags, time, fl
       cell.className = 'gridCell';
       cell.dataset.x = x;
       cell.dataset.y = y;
-
       const isRevealed = revealedSet.has(`${x},${y}`);
       if (isRevealed) {
         cell.classList.add('revealed');
         cell.textContent = grid[y][x] || '';
         if (grid[y][x] === 'X') cell.classList.add('mine');
       }
-
       row.appendChild(cell);
     }
     gridElement.appendChild(row);
   }
-
   if (Array.isArray(flags)) {
     flags.forEach(({ x, y }) => {
       const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
@@ -645,18 +673,15 @@ function handleSpectateUpdate({ grid, rows, cols, revealedCells, flags, time, fl
       }
     });
   }
-
   const timerEl = document.getElementById('gameTimer');
   if (timerEl) {
     let currentTime = time || 0;
     timerEl.textContent = `Time: ${currentTime} s`;
-    
     spectateTimerInterval = setInterval(() => {
       currentTime++;
       timerEl.textContent = `Time: ${currentTime} s`;
     }, 1000);
   }
-
   const flagCounter = document.getElementById('flagCounter');
   if (flagCounter && flagsLeft !== undefined) {
     flagCounter.textContent = `Flags left: ${flagsLeft}`;
@@ -675,7 +700,6 @@ function handleGameResumed({ reconnectedPlayerId, penalty }) {
     showPenaltyAnimation(socket.id, penalty * 1000);
     updateTimerDisplay();
   }
-  
   hideDisconnectModal();
 }
 
@@ -690,15 +714,11 @@ function handlePlayerDisconnected({ playerId, timeout }) {
 function reconnectGameHandler(data) {
   localStorage.setItem('inGameSocketId', socket.id);
   gameTimer.isPaused = data.isPaused;
-
   const oldGameContainer = document.getElementById('gameContainer');
   if (oldGameContainer) oldGameContainer.remove();
-  
   const readyBtn = document.getElementById('readyUp');
   if (readyBtn) readyBtn.disabled = false;
-  
   document.querySelector('.content-box').style.display = 'none';
-
   const container = document.querySelector('.container');
   container.innerHTML += `
     <div id="gameContainer">
@@ -712,12 +732,9 @@ function reconnectGameHandler(data) {
       <div id="minesweeperGrid"></div>
     </div>
   `;
-
   const gridElement = document.getElementById('minesweeperGrid');
   gridElement.innerHTML = '';
-  
   const revealedSet = new Set(data.revealedCells.map(c => `${c.x},${c.y}`));
-  
   for (let y = 0; y < data.rows; y++) {
     const row = document.createElement('div');
     row.className = 'gridRow';
@@ -726,33 +743,28 @@ function reconnectGameHandler(data) {
       cell.className = 'gridCell';
       cell.dataset.x = x;
       cell.dataset.y = y;
-      
       const isRevealed = revealedSet.has(`${x},${y}`);
       const isFlagged = data.flags.some(f => f.x === x && f.y === y);
-      
       if (isRevealed) {
         cell.classList.add('revealed');
         cell.textContent = data.grid[y][x] || '';
         if (data.grid[y][x] === 'X') cell.classList.add('mine');
-      } 
-      else if (isFlagged) {
+      } else if (isFlagged) {
         cell.classList.add('flagged');
         cell.textContent = '🚩';
       }
-      
       if (!isRevealed) {
         cell.onclick = () => socket.emit('revealCell', { x, y });
         cell.oncontextmenu = (e) => {
           e.preventDefault();
+          if (cell.classList.contains('revealed')) return;
           socket.emit('placeFlag', { x, y });
         };
       }
-      
       row.appendChild(cell);
     }
     gridElement.appendChild(row);
   }
-
   if (data.isPaused) {
     pauseTimer();
   } else {
@@ -764,27 +776,22 @@ function reconnectGameHandler(data) {
     }
     updateTimerDisplay();
   }
-
   gameTimer.startTime = data.startTime;
   gameTimer.pausedDuration = data.pausedDuration || 0;
   gameTimer.penaltySeconds = (data.penalty || 0) / 1000;
-
-    if (data.penalty > 0) {
+  if (data.penalty > 0) {
     gameTimer.penaltySeconds = data.penalty / 1000;
     updateTimerDisplay();
   }
-
-
-if (data.isPaused) {
-  pauseTimer();
-} else if (playerStatus === 'alive') {
-  resumeTimer(); 
-}
+  if (data.isPaused) {
+    pauseTimer();
+  } else if (playerStatus === 'alive') {
+    resumeTimer();
+  }
 }
 
 function showDisconnectModal(playerName, timeout) {
   hideDisconnectModal();
-  
   if (!document.getElementById('disconnectModal')) {
     const modal = document.createElement('div');
     modal.id = 'disconnectModal';
@@ -798,19 +805,16 @@ function showDisconnectModal(playerName, timeout) {
     `;
     document.body.appendChild(modal);
   }
-  
   disconnectCountdown = timeout;
   updateDisconnectCountdown();
-  
   disconnectModalInterval = setInterval(() => {
     disconnectCountdown--;
     updateDisconnectCountdown();
-    
     if (disconnectCountdown <= 0) {
       clearInterval(disconnectModalInterval);
       disconnectModalInterval = null;
       resumeTimer();
-      hideDisconnectModal(); 
+      hideDisconnectModal();
     }
   }, 1000);
 }
@@ -819,7 +823,6 @@ function updateDisconnectCountdown() {
   const countdownEl = document.getElementById('disconnectCountdown');
   if (countdownEl) {
     countdownEl.textContent = disconnectCountdown;
-    
     if (disconnectCountdown <= 3) {
       countdownEl.style.color = 'red';
       countdownEl.style.fontWeight = 'bold';
@@ -832,7 +835,6 @@ function hideDisconnectModal() {
   if (disconnectModalInterval) {
     clearInterval(disconnectModalInterval);
   }
-  
   const modal = document.getElementById('disconnectModal');
   if (modal) {
     modal.remove();
@@ -846,17 +848,13 @@ function showDisconnectedMessage(playerName) {
 function showPenaltyAnimation(playerId, penalty) {
   const penaltySeconds = penalty / 1000;
   const progressContainer = document.querySelector(`.progress-container[data-userid="${playerId}"]`);
-  
   if (progressContainer) {
     const penaltyEl = document.createElement('div');
     penaltyEl.className = 'penalty-animation';
     penaltyEl.textContent = `+${penaltySeconds}`;
     penaltyEl.style.color = 'red';
-    
     progressContainer.appendChild(penaltyEl);
-    
     penaltyEl.style.animation = 'floatUp 1s forwards';
-    
     setTimeout(() => {
       penaltyEl.remove();
     }, 1000);
@@ -879,24 +877,19 @@ function createCell(x, y, revealedCells, grid) {
   cell.className = 'gridCell' + (revealedCells.has(`${x},${y}`) ? ' revealed' : '');
   cell.dataset.x = x;
   cell.dataset.y = y;
-  
   if (revealedCells.has(`${x},${y}`)) {
     cell.textContent = grid[y][x] || '';
   }
-
   cell.onclick = () => {
     if (!revealedCells.has(`${x},${y}`)) {
       socket.emit('revealCell', { x, y });
     }
   };
-
   cell.oncontextmenu = (e) => {
     e.preventDefault();
-    if (!revealedCells.has(`${x},${y}`)) {
-      socket.emit('placeFlag', { x, y });
-    }
+    if (revealedCells.has(`${x},${y}`)) return;
+    socket.emit('placeFlag', { x, y });
   };
-
   return cell;
 }
 
@@ -916,15 +909,12 @@ function revealFullGrid(grid) {
 function createProgressBars(currentUserId, users) {
   const currentUser = users.find(u => u.id === currentUserId);
   const opponents = users.filter(u => u.id !== currentUserId);
-  
   const playersToDisplay = [currentUser, ...opponents];
-  
   let rows = [];
   for (let i = 0; i < playersToDisplay.length; i += 2) {
     const rowPlayers = playersToDisplay.slice(i, i + 2);
     rows.push(rowPlayers);
   }
-  
   return `
     <div class="progress-rows-container">
       ${rows.map(rowPlayers => `
@@ -946,14 +936,11 @@ function createProgressBars(currentUserId, users) {
 function showSpectatePlayersModal() {
   const modal = document.getElementById('spectatePlayersModal');
   const list = document.getElementById('spectatePlayersList');
-  
   if (!modal || !list) return;
-  
   list.innerHTML = '';
   document.getElementById('closeSpectateModal').addEventListener('click', () => {
     modal.style.display = 'none';
   });
-
   if (alivePlayers.length === 0) {
     list.innerHTML = '<div class="no-players">No active players to spectate</div>';
   } else {
@@ -966,40 +953,30 @@ function showSpectatePlayersModal() {
         </div>
       `;
       playerItem.dataset.id = player.id;
-      
       playerItem.addEventListener('click', () => {
         spectatedPlayerId = player.id;
         spectating = true;
         modal.style.display = 'none';
-
         const intermediateModal = document.getElementById('intermediatePodiumModal');
         if (intermediateModal) intermediateModal.style.display = 'none';
-        
         socket.emit('spectatePlayer', player.id);
-        
         addSpectateButton();
       });
-      
       list.appendChild(playerItem);
     });
   }
-  
   modal.style.display = 'flex';
 }
 
 function addSpectateButton() {
   if (document.getElementById('spectateButton')) return;
-  
   const gameContainer = document.getElementById('gameContainer');
   if (!gameContainer) return;
-  
   const spectateBtn = document.createElement('button');
   spectateBtn.id = 'spectateButton';
   spectateBtn.className = 'spectate-button';
   spectateBtn.textContent = 'Spectate';
-  
   spectateBtn.addEventListener('click', showSpectatePlayersModal);
-  
   const grid = document.getElementById('minesweeperGrid');
   gameContainer.insertBefore(spectateBtn, grid);
 }
@@ -1008,7 +985,6 @@ function resetSpectation() {
   spectating = false;
   spectatedPlayerId = null;
   alivePlayers = [];
-  
   const spectateBtn = document.getElementById('spectateButton');
   if (spectateBtn) spectateBtn.remove();
 }
@@ -1019,23 +995,16 @@ function createPodiumDisplay(results) {
     ...player,
     status: player.status === 'finished' ? 'winner' : player.status
   }));
-  
-  const winners = results.filter(r => r.status === 'winner')
-    .sort((a, b) => a.time - b.time);
-  const losers = results.filter(r => r.status === 'loser' || r.status === 'disconnected')
-    .sort((a, b) => b.progress - a.progress);
+  const winners = results.filter(r => r.status === 'winner').sort((a, b) => a.time - b.time);
+  const losers = results.filter(r => r.status === 'loser' || r.status === 'disconnected').sort((a, b) => b.progress - a.progress);
   const sortedResults = [...winners, ...losers];
-
   sortedResults.forEach((player, index) => {
     player.rank = index + 1;
   });
-
   const firstPlace = sortedResults.find(p => p.rank === 1);
-  
   const playersAfterFirst = sortedResults.filter(p => p.rank > 1);
   const leftPlayers = [];
   const rightPlayers = [];
-  
   playersAfterFirst.forEach((player, index) => {
     if (index % 2 === 0) {
       rightPlayers.push(player);
@@ -1043,31 +1012,24 @@ function createPodiumDisplay(results) {
       leftPlayers.unshift(player);
     }
   });
-
   let podiumHTML = '<div class="podium-container"><div class="podium-row">';
-  
   leftPlayers.forEach(player => {
     podiumHTML += createPodiumTier(player, currentUserId);
   });
-  
   if (firstPlace) {
     podiumHTML += createPodiumTier(firstPlace, currentUserId, true);
   }
-  
   rightPlayers.forEach(player => {
     podiumHTML += createPodiumTier(player, currentUserId);
   });
-  
   podiumHTML += '</div></div>';
-  
   return podiumHTML;
 }
 
 function createPodiumTier(player, currentUserId, isCenter = false) {
-  const tierClass = player.rank === 1 ? 'first' : 
-                   player.rank === 2 ? 'second' : 
+  const tierClass = player.rank === 1 ? 'first' :
+                   player.rank === 2 ? 'second' :
                    player.rank === 3 ? 'third' : 'other';
-                   
   return `
     <div class="podium-tier ${tierClass} ${player.id === currentUserId ? 'current-player' : ''}">
       <div class="tier-rank">#${player.rank}</div>
@@ -1078,7 +1040,6 @@ function createPodiumTier(player, currentUserId, isCenter = false) {
           <br>
           <span>${player.time} s</span>
           ${player.penalty ? `<span class="penalty">+${player.penalty}</span>` : ''}
-
         </div>
       </div>
     </div>

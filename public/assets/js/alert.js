@@ -1,14 +1,12 @@
 function showCustomAlert(msg, type = "error") {
-  console.log("showCustomAlert aufgerufen:", msg, type); // Debug
+  console.log("showCustomAlert aufgerufen:", msg, type);
   
-  // Alte Benachrichtigungen entfernen
   const existing = document.querySelector('.custom-notification');
   if (existing) {
     console.log("Alte Benachrichtigung entfernt");
     existing.remove();
   }
 
-  // Neue Benachrichtigung erstellen
   const div = document.createElement('div');
   div.className = `custom-notification ${type}`;
   div.textContent = msg;
@@ -16,7 +14,6 @@ function showCustomAlert(msg, type = "error") {
   
   console.log("Neue Benachrichtigung erstellt");
 
-  // Nach 3.5 Sekunden ausblenden und entfernen
   setTimeout(() => {
     div.classList.add('fade-out');
     setTimeout(() => {

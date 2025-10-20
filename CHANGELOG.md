@@ -87,6 +87,11 @@
 - Small Bug fixes
 - fixed Maxi feature on multiplayer
 - reworked Flexbox (mobile)
+
+# 20.10.2025
+- Fixed some Bugs
+- added Admin Panel, to Control everything
+- BUG FIX | added logic to handle dead Players in the Reconnect logic, Fixed that you need to be in the correct lobby
  
 # TODO
 
@@ -97,6 +102,7 @@
     5. Tags (admin)
     6. Add sound
     7. Admin Page (dashboard for admin tags, change stats and have access to everything databank[Verification per E-Mail])
-    8. BUG: Our Spectation logic doesnt handle Dead Players. - also somehow i can reconnect in another lobby..?
+    8. BUG: Bug with Reconnect Time (only CLient who rejoins)
     9. Add that even when the lobby is full people can spectate and chat its like MINECRAFT!!!!!
     10. Add a Live Updating Journey (Changelog.MD) with pictures and so on!!
+    11. Add a log file (everything is safed in log.json)

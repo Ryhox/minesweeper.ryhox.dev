@@ -112,11 +112,20 @@ function stopTimer() {
 function updateTimerDisplay() {
   const timerEl = document.getElementById('gameTimer');
   if (!timerEl) return;
+  
   let elapsedSeconds = 0;
   if (gameTimer.startTime) {
-    const baseTime = Math.floor((Date.now() - gameTimer.startTime - gameTimer.pausedDuration) / 1000);
-    elapsedSeconds = baseTime;
+    const now = Date.now();
+    let rawTime = now - gameTimer.startTime;
+    
+    // Pausierte Zeit abziehen
+    if (gameTimer.pausedDuration) {
+      rawTime -= gameTimer.pausedDuration;
+    }
+    
+    elapsedSeconds = Math.max(0, Math.floor(rawTime / 1000));
   }
+  
   timerEl.innerHTML = `Time: ${elapsedSeconds}s${
     gameTimer.penaltySeconds > 0
       ? `<span class="penalty-display">+${gameTimer.penaltySeconds}</span>`
@@ -306,8 +315,22 @@ socket.on('reconnectGameData', reconnectGameHandler);
 
 socket.on('connect', async () => {
   const inGameSocketId = localStorage.getItem('inGameSocketId');
+  const prevLobbyCode = localStorage.getItem('lobbyCode');
   const code = window.location.pathname.split('/').pop().toUpperCase();
   const name = await waitForUsername();
+  
+  // Reset reconnect if player joins a different lobby
+  if (prevLobbyCode && code !== prevLobbyCode) {
+    localStorage.removeItem('inGameSocketId');
+    localStorage.removeItem('lobbyCode');
+    const readyBtn = document.getElementById('readyUp');
+    if (readyBtn) {
+      readyBtn.textContent = 'Ready Up';
+      readyBtn.disabled = false;
+      readyBtn.onclick = () => socket.emit('readyUp');
+    }
+  } else
+
   if (inGameSocketId && code && name && validateCode(code)) {
     console.log("Reconnect check with ID:", inGameSocketId);
     socket.emit('checkPlayerStatus', { playerId: inGameSocketId }, (inGame) => {
@@ -323,6 +346,7 @@ socket.on('connect', async () => {
         };
       } else {
         localStorage.removeItem('inGameSocketId');
+        localStorage.removeItem('lobbyCode');
         readyBtn.textContent = 'Ready Up';
         readyBtn.disabled = false;
         readyBtn.onclick = () => socket.emit('readyUp');
@@ -419,7 +443,9 @@ function handleUserLeft(userId) {
 function startGameHandler({ grid, rows: r, cols: c, mines, initialRevealed, users }) {
   cols = c;
   rows = r;
+  const code = window.location.pathname.split('/').pop().toUpperCase();
   localStorage.setItem('inGameSocketId', socket.id);
+  localStorage.setItem('lobbyCode', code);
   document.querySelector('.content-box').style.display = 'none';
   const currentUserId = socket.id;
   playerStatus = 'alive';
@@ -595,6 +621,7 @@ function handleProgressUpdate(usersProgress) {
 
 function handleGameOver({ results, grid }) {
   localStorage.removeItem('inGameSocketId');
+  localStorage.removeItem('lobbyCode');
   stopTimer();
   if (spectateTimerInterval) clearInterval(spectateTimerInterval);
   revealFullGrid(grid);
@@ -719,6 +746,25 @@ function reconnectGameHandler(data) {
   const readyBtn = document.getElementById('readyUp');
   if (readyBtn) readyBtn.disabled = false;
   document.querySelector('.content-box').style.display = 'none';
+
+  if (data.isDead) {
+    playerStatus = 'dead';
+    alivePlayers = data.users.filter(user => {
+      const state = data.playerStates[user.id];
+      return state && state.status === 'alive';
+    });
+    
+    if (alivePlayers.length > 0) {
+      const randomPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      spectatedPlayerId = randomPlayer.id;
+      spectating = true;
+      socket.emit('spectatePlayer', randomPlayer.id);
+      setTimeout(() => {
+        showSpectatePlayersModal();
+      }, 500);
+    }
+  }
+  
   const container = document.querySelector('.container');
   container.innerHTML += `
     <div id="gameContainer">
@@ -732,6 +778,7 @@ function reconnectGameHandler(data) {
       <div id="minesweeperGrid"></div>
     </div>
   `;
+  
   const gridElement = document.getElementById('minesweeperGrid');
   gridElement.innerHTML = '';
   const revealedSet = new Set(data.revealedCells.map(c => `${c.x},${c.y}`));
@@ -765,28 +812,45 @@ function reconnectGameHandler(data) {
     }
     gridElement.appendChild(row);
   }
-  if (data.isPaused) {
-    pauseTimer();
-  } else {
-    if (playerStatus === 'alive') {
-      if (gameTimer.interval) {
-        clearInterval(gameTimer.interval);
-      }
-      gameTimer.interval = setInterval(updateTimerDisplay, 1000);
+
+  const playerState = data.playerStates[socket.id];
+  if (playerState) {
+    let currentElapsedTime = 0;
+    
+    if (playerState.status === 'alive') {
+      const now = Date.now();
+      currentElapsedTime = Math.floor((now - playerState.startTime - playerState.pausedDuration) / 1000);
+    } else {
+      currentElapsedTime = playerState.time || 0;
     }
+    
+    gameTimer.startTime = Date.now() - (currentElapsedTime * 1000);
+    gameTimer.pausedDuration = playerState.pausedDuration || 0;
+    gameTimer.penaltySeconds = (data.penalty || 0) / 1000;
+    
+    console.log("Reconnect time calculation:", {
+      status: playerState.status,
+      currentElapsedTime,
+      startTime: playerState.startTime,
+      pausedDuration: playerState.pausedDuration,
+      calculatedTime: currentElapsedTime
+    });
+    
     updateTimerDisplay();
   }
-  gameTimer.startTime = data.startTime;
-  gameTimer.pausedDuration = data.pausedDuration || 0;
-  gameTimer.penaltySeconds = (data.penalty || 0) / 1000;
+
   if (data.penalty > 0) {
-    gameTimer.penaltySeconds = data.penalty / 1000;
-    updateTimerDisplay();
+    showPenaltyAnimation(socket.id, data.penalty);
   }
+
   if (data.isPaused) {
     pauseTimer();
   } else if (playerStatus === 'alive') {
-    resumeTimer();
+    if (gameTimer.interval) {
+      clearInterval(gameTimer.interval);
+    }
+    gameTimer.interval = setInterval(updateTimerDisplay, 1000);
+    updateTimerDisplay();
   }
 }
 

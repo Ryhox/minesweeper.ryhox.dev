@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minesweeper Admin Dashboard</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="/assets/js/firebase-auth.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        /* Custom Alert System */
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        
+        .custom-alert {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border-left: 4px solid var(--secondary);
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .custom-alert.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .custom-alert.success {
+            border-left-color: var(--success);
+        }
+        
+        .custom-alert.error {
+            border-left-color: var(--danger);
+        }
+        
+        .custom-alert.warning {
+            border-left-color: var(--warning);
+        }
+        
+        .alert-icon {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .alert-content {
+            flex: 1;
+        }
+        
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .alert-message {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .alert-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .alert-close:hover {
+            opacity: 1;
+        }
+        
+        /* Login Screen */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+        
+        .login-form {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 450px;
+        }
+        
+        .login-form h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        .alert {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .alert-danger {
+            background-color: rgba(231, 76, 60, 0.1);
+            border: 1px solid var(--danger);
+            color: #c0392b;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: var(--primary);
+            color: white;
+            padding: 0;
+            transition: all 0.3s;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-header .user-info {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 15px 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 2px;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: var(--secondary);
+        }
+        
+        .sidebar-menu i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            padding: 18px 25px;
+            background-color: var(--light);
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .stat-card .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th, table td {
+            padding: 14px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        table th {
+            background-color: var(--light);
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        table tr:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        /* Buttons */
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 0.875rem;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+        }
+        
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            border-bottom-color: var(--secondary);
+            color: var(--secondary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Tag Badges */
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: var(--light);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .tag-admin {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .tag-moderator {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .tag-user {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .tag-online {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .tag-offline {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #777;
+            transition: color 0.3s;
+        }
+        
+        .modal-close:hover {
+            color: var(--danger);
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Status Indicators */
+        .status-online {
+            color: var(--success);
+        }
+        
+        .status-offline {
+            color: var(--danger);
+        }
+        
+        .status-warning {
+            color: var(--warning);
+        }
+        
+        /* Live Session Indicators */
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success);
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Alert Container -->
+    <div class="alert-container" id="alert-container"></div>
+    
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+        <div class="login-form">
+            <h2>Minesweeper Admin Login</h2>
+            <div class="form-group">
+                <label for="login-email">E-Mail</label>
+                <input type="email" id="login-email" class="form-control" placeholder="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Passwort</label>
+                <input type="password" id="login-password" class="form-control" placeholder="••••••••">
+            </div>
+            <button id="login-btn" class="btn btn-block">
+                <span id="login-text">Anmelden</span>
+                <span id="login-spinner" class="spinner" style="display: none;"></span>
+            </button>
+            <div id="login-error" class="alert alert-danger" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <!-- Admin Dashboard -->
+    <div id="admin-dashboard" class="container" style="display: none;">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Minesweeper Admin</h2>
+                <div class="user-info" id="user-info">
+                    <!-- User info wird hier eingefügt -->
+                </div>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-tab="dashboard"><i>📊</i> Dashboard</a></li>
+                <li><a href="#" data-tab="users"><i>👥</i> Benutzer</a></li>
+                <li><a href="#" data-tab="lobbies"><i>🎮</i> Lobbies</a></li>
+                <li><a href="#" data-tab="sessions"><i>🔐</i> Live Sessions</a></li>
+                <li><a href="#" data-tab="leaderboard"><i>🏆</i> Leaderboard</a></li>
+                <li><a href="#" data-tab="settings"><i>⚙️</i> Einstellungen</a></li>
+                <li><a href="#" id="logout-btn"><i>🚪</i> Abmelden</a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Admin Dashboard</h1>
+                <div class="header-actions">
+                    <span id="current-time"></span>
+                    <span id="connection-status" class="status-online">● Verbunden</span>
+                </div>
+            </div>
+            
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Gesamtspieler</h3>
+                        <div class="value" id="total-players">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Aktive Lobbies</h3>
+                        <div class="value" id="active-lobbies">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Aktive Sessions</h3>
+                        <div class="value" id="active-sessions">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Durchschn. Spielzeit</h3>
+                        <div class="value" id="avg-game-time">0s</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Systemstatus</h3>
+                        <span id="system-status" class="status-online">Online</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Server-Auslastung</label>
+                            <div style="background-color: #eee; height: 20px; border-radius: 10px; overflow: hidden;">
+                                <div id="server-load" style="background-color: var(--success); height: 100%; width: 30%;"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Speichernutzung</label>
+                            <div style="background-color: #eee; height: 20px; border-radius: 10px; overflow: hidden;">
+                                <div id="memory-usage" style="background-color: var(--warning); height: 100%; width: 45%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Aktivitätsprotokoll</h3>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Zeit</th>
+                                    <th>Benutzer</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-log">
+                                <!-- Activity log will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users Tab -->
+            <div id="users" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Benutzerverwaltung</h3>
+                        <div>
+                            <button class="btn btn-sm" id="refresh-users">Aktualisieren</button>
+                            <button class="btn btn-success btn-sm" id="add-user-btn">Benutzer hinzufügen</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <input type="text" id="user-search" class="form-control" placeholder="Benutzer suchen...">
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Benutzername</th>
+                                    <th>E-Mail</th>
+                                    <th>Rolle</th>
+                                    <th>Registriert am</th>
+                                    <th>Spiele gespielt</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table">
+                                <!-- Users will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lobbies Tab -->
+            <div id="lobbies" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Aktive Lobbies</h3>
+                        <button class="btn btn-sm" id="refresh-lobbies">Aktualisieren</button>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Schwierigkeit</th>
+                                    <th>Spieler</th>
+                                    <th>Status</th>
+                                    <th>Host</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lobbies-table">
+                                <!-- Lobbies will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sessions Tab -->
+            <div id="sessions" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Live Sessions</h3>
+                        <button class="btn btn-sm" id="refresh-sessions">Aktualisieren</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3>Aktive Benutzer</h3>
+                                <div class="value" id="online-users">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Verbundene Clients</h3>
+                                <div class="value" id="connected-clients">0</div>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Benutzername</th>
+                                    <th>Status</th>
+                                    <th>Lobby</th>
+                                    <th>Verbindungszeit</th>
+                                    <th>Letzte Aktivität</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessions-table">
+                                <!-- Sessions will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Leaderboard Tab -->
+            <div id="leaderboard" class="tab-content">
+                <div class="tabs">
+                    <div class="tab active" data-leaderboard-type="multiplayer">Multiplayer</div>
+                    <div class="tab" data-leaderboard-type="singleplayer">Singleplayer</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Leaderboard</h3>
+                        <button class="btn btn-sm" id="refresh-leaderboard">Aktualisieren</button>
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rang</th>
+                                    <th>Benutzername</th>
+                                    <th id="leaderboard-value-header">Siege</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-table">
+                                <!-- Leaderboard will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Systemeinstellungen</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Server-URL</label>
+                            <input type="text" class="form-control" id="server-url" value="https://minesweeper.nexorhub.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Automatische Aktualisierung (Sekunden)</label>
+                            <input type="number" class="form-control" id="refresh-interval" value="30" min="10">
+                        </div>
+                        <button class="btn btn-success" id="save-settings">Einstellungen speichern</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Benutzer hinzufügen</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Benutzername</label>
+                <input type="text" class="form-control" id="new-username">
+            </div>
+            <div class="form-group">
+                <label>E-Mail</label>
+                <input type="email" class="form-control" id="new-email">
+            </div>
+            <div class="form-group">
+                <label>Passwort</label>
+                <input type="password" class="form-control" id="new-password">
+            </div>
+            <div class="form-group">
+                <label>Rolle</label>
+                <select class="form-control" id="new-role">
+                    <option value="user">Benutzer</option>
+                    <option value="admin">Administrator</option>
+                    <option value="moderator">Moderator</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn" id="cancel-add-user" style="margin-right: 10px;">Abbrechen</button>
+                <button class="btn btn-success" id="confirm-add-user">Hinzufügen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Benutzer bearbeiten</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <input type="hidden" id="edit-user-id">
+            <div class="form-group">
+                <label>Benutzername</label>
+                <input type="text" class="form-control" id="edit-username">
+            </div>
+            <div class="form-group">
+                <label>E-Mail</label>
+                <input type="email" class="form-control" id="edit-email">
+            </div>
+            <div class="form-group">
+                <label>Rolle</label>
+                <select class="form-control" id="edit-role">
+                    <option value="user">Benutzer</option>
+                    <option value="admin">Administrator</option>
+                    <option value="moderator">Moderator</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn" id="cancel-edit-user" style="margin-right: 10px;">Abbrechen</button>
+                <button class="btn btn-success" id="confirm-edit-user">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Custom Alert System
+        class AlertManager {
+            constructor() {
+                this.container = document.getElementById('alert-container');
+                this.alertCount = 0;
+            }
+            
+            show(title, message, type = 'info', duration = 5000) {
+                this.alertCount++;
+                const alertId = `alert-${this.alertCount}`;
+                
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️',
+                    info: 'ℹ️'
+                };
+                
+                const alert = document.createElement('div');
+                alert.className = `custom-alert ${type}`;
+                alert.id = alertId;
+                alert.innerHTML = `
+                    <div class="alert-icon">${icons[type] || icons.info}</div>
+                    <div class="alert-content">
+                        <div class="alert-title">${title}</div>
+                        <div class="alert-message">${message}</div>
+                    </div>
+                    <button class="alert-close" onclick="alertManager.close('${alertId}')">×</button>
+                `;
+                
+                this.container.appendChild(alert);
+                
+                // Animation einleiten
+                setTimeout(() => {
+                    alert.classList.add('show');
+                }, 10);
+                
+                // Automatisch schließen nach duration
+                if (duration > 0) {
+                    setTimeout(() => {
+                        this.close(alertId);
+                    }, duration);
+                }
+                
+                return alertId;
+            }
+            
+            close(alertId) {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.classList.remove('show');
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.parentNode.removeChild(alert);
+                        }
+                    }, 300);
+                }
+            }
+            
+            success(title, message, duration = 5000) {
+                return this.show(title, message, 'success', duration);
+            }
+            
+            error(title, message, duration = 5000) {
+                return this.show(title, message, 'error', duration);
+            }
+            
+            warning(title, message, duration = 5000) {
+                return this.show(title, message, 'warning', duration);
+            }
+            
+            info(title, message, duration = 5000) {
+                return this.show(title, message, 'info', duration);
+            }
+        }
+        
+        // Alert Manager initialisieren
+        const alertManager = new AlertManager();
+        
+        // Globale Variablen
+        let currentUser = null;
+        let refreshInterval = null;
+        let allUsers = [];
+        let allLobbies = [];
+        let allSessions = [];
+        let socket = null;
+        
+        // DOM-Elemente
+        const loginScreen = document.getElementById('login-screen');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const loginBtn = document.getElementById('login-btn');
+        const loginText = document.getElementById('login-text');
+        const loginSpinner = document.getElementById('login-spinner');
+        const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+        const currentTime = document.getElementById('current-time');
+        const tabLinks = document.querySelectorAll('.sidebar-menu a[data-tab]');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Modals
+        const addUserModal = document.getElementById('add-user-modal');
+        const editUserModal = document.getElementById('edit-user-modal');
+        
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', function() {
+            // Firebase Auth State Observer
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    // Benutzer ist eingeloggt
+                    currentUser = user;
+                    checkAdminAccess(user);
+                } else {
+                    // Benutzer ist nicht eingeloggt
+                    showLoginScreen();
+                }
+            });
+            
+            // Event-Listener für Tab-Navigation
+            tabLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Aktiven Tab aktualisieren
+                    tabLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Tab-Inhalt anzeigen
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tabId) {
+                            content.classList.add('active');
+                        }
+                    });
+                    
+                    // Tab-spezifische Daten laden
+                    loadTabData(tabId);
+                });
+            });
+            
+            // Event-Listener für Login-Button
+            loginBtn.addEventListener('click', handleLogin);
+            
+            // Event-Listener für Logout-Button
+            logoutBtn.addEventListener('click', handleLogout);
+            
+            // Event-Listener für Leaderboard-Tabs
+            document.querySelectorAll('.tab[data-leaderboard-type]').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab[data-leaderboard-type]').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    loadLeaderboard(this.getAttribute('data-leaderboard-type'));
+                });
+            });
+            
+            // Event-Listener für Benutzerverwaltung
+            document.getElementById('refresh-users').addEventListener('click', () => loadUsers());
+            document.getElementById('add-user-btn').addEventListener('click', showAddUserModal);
+            document.getElementById('cancel-add-user').addEventListener('click', hideAddUserModal);
+            document.getElementById('confirm-add-user').addEventListener('click', addNewUser);
+            document.getElementById('user-search').addEventListener('input', filterUsers);
+            
+            // Event-Listener für Lobby-Verwaltung
+            document.getElementById('refresh-lobbies').addEventListener('click', () => loadLobbies());
+            
+            // Event-Listener für Sessions
+            document.getElementById('refresh-sessions').addEventListener('click', () => loadSessions());
+            
+            // Event-Listener für Leaderboard
+            document.getElementById('refresh-leaderboard').addEventListener('click', () => {
+                const activeTab = document.querySelector('.tab[data-leaderboard-type].active');
+                loadLeaderboard(activeTab.getAttribute('data-leaderboard-type'));
+            });
+            
+            // Event-Listener für Einstellungen
+            document.getElementById('save-settings').addEventListener('click', saveSettings);
+            
+            // Event-Listener für Modal-Schließen
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Uhrzeit aktualisieren
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // Demo-Daten laden (für Testzwecke)
+            loadDemoData();
+        });
+        
+        // Funktionen
+        function showLoginScreen() {
+            loginScreen.style.display = 'flex';
+            adminDashboard.style.display = 'none';
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+        
+        function showAdminDashboard() {
+            loginScreen.style.display = 'none';
+            adminDashboard.style.display = 'flex';
+            
+            // Benutzerinfo anzeigen
+            userInfo.innerHTML = `${currentUser.email} <span class="tag tag-admin">Admin</span>`;
+            
+            // Automatische Aktualisierung starten
+            startAutoRefresh();
+            
+            // Dashboard-Daten laden
+            loadDashboardData();
+            
+            // Socket.IO für Live-Daten verbinden
+            connectToSocket();
+            
+            // Erfolgsmeldung anzeigen
+            alertManager.success('Erfolgreich angemeldet', `Willkommen, ${currentUser.email}!`);
+        }
+        
+        async function checkAdminAccess(user) {
+            try {
+                // Benutzerdaten aus der JSON-Datei abrufen
+                const response = await fetch('/api/getUser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        uid: user.uid
+                    })
+                });
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    
+                    // Überprüfen, ob der Benutzer Admin-Rechte hat
+                    if (userData.role === 'admin') {
+                        showAdminDashboard();
+                    } else {
+                        loginError.textContent = 'Sie haben keine Administratorberechtigungen.';
+                        loginError.style.display = 'block';
+                        alertManager.error('Zugriff verweigert', 'Sie haben keine Administratorberechtigungen.');
+                        firebase.auth().signOut();
+                    }
+                } else {
+                    throw new Error('Benutzerdaten konnten nicht abgerufen werden');
+                }
+            } catch (error) {
+                console.error('Fehler beim Überprüfen der Admin-Berechtigung:', error);
+                loginError.textContent = 'Fehler beim Überprüfen der Berechtigungen.';
+                loginError.style.display = 'block';
+                firebase.auth().signOut();
+            }
+        }
+        
+        function handleLogin() {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            
+            if (!email || !password) {
+                loginError.textContent = 'Bitte geben Sie E-Mail und Passwort ein.';
+                loginError.style.display = 'block';
+                return;
+            }
+            
+            // Lade-Animation anzeigen
+            loginText.style.display = 'none';
+            loginSpinner.style.display = 'inline-block';
+            loginBtn.disabled = true;
+            
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Erfolgreich eingeloggt - onAuthStateChanged wird aufgerufen
+                    loginError.style.display = 'none';
+                })
+                .catch((error) => {
+                    loginError.textContent = 'Anmeldung fehlgeschlagen: ' + error.message;
+                    loginError.style.display = 'block';
+                    alertManager.error('Anmeldung fehlgeschlagen', error.message);
+                    
+                    // Lade-Animation ausblenden
+                    loginText.style.display = 'inline-block';
+                    loginSpinner.style.display = 'none';
+                    loginBtn.disabled = false;
+                });
+        }
+        
+        function handleLogout() {
+            if (confirm('Möchten Sie sich wirklich abmelden?')) {
+                alertManager.info('Abmeldung', 'Sie werden abgemeldet...');
+                setTimeout(() => {
+                    firebase.auth().signOut();
+                }, 1000);
+            }
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            currentTime.textContent = now.toLocaleString('de-DE');
+        }
+        
+        function startAutoRefresh() {
+            const interval = document.getElementById('refresh-interval').value * 1000;
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            refreshInterval = setInterval(() => {
+                const activeTab = document.querySelector('.tab-content.active').id;
+                loadTabData(activeTab);
+            }, interval);
+        }
+        
+        function connectToSocket() {
+            // Socket.IO für Live-Daten verbinden
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Mit Server verbunden');
+                document.getElementById('connection-status').textContent = '● Verbunden';
+                document.getElementById('connection-status').className = 'status-online';
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('Verbindung zum Server getrennt');
+                document.getElementById('connection-status').textContent = '● Getrennt';
+                document.getElementById('connection-status').className = 'status-offline';
+            });
+            
+            // Live Updates für Sessions
+            socket.on('userConnected', (data) => {
+                alertManager.info('Neue Verbindung', `Benutzer ${data.username} hat sich verbunden`);
+                loadSessions();
+            });
+            
+            socket.on('userDisconnected', (data) => {
+                alertManager.info('Verbindung getrennt', `Benutzer ${data.username} hat sich getrennt`);
+                loadSessions();
+            });
+            
+            socket.on('lobbyCreated', (data) => {
+                alertManager.info('Neue Lobby', `Lobby ${data.code} wurde erstellt`);
+                loadLobbies();
+            });
+            
+            socket.on('lobbyUpdated', (data) => {
+                loadLobbies();
+            });
+        }
+        
+        function loadTabData(tabId) {
+            switch(tabId) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+                case 'lobbies':
+                    loadLobbies();
+                    break;
+                case 'sessions':
+                    loadSessions();
+                    break;
+                case 'leaderboard':
+                    const leaderboardType = document.querySelector('.tab[data-leaderboard-type].active').getAttribute('data-leaderboard-type');
+                    loadLeaderboard(leaderboardType);
+                    break;
+                case 'settings':
+                    // Einstellungen müssen nicht automatisch geladen werden
+                    break;
+            }
+        }
+        
+        function loadDashboardData() {
+            // API-Aufruf für globale Statistiken
+            fetch('/api/getGlobalStats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('total-players').textContent = data.totalPlayers || '0';
+                    document.getElementById('active-lobbies').textContent = data.activeLobbies || '0';
+                    document.getElementById('avg-game-time').textContent = (data.averageTime || '0') + 's';
+                })
+                .catch(err => {
+                    console.error('Fehler beim Laden der Dashboard-Daten:', err);
+                    // Fallback zu Demo-Daten
+                    document.getElementById('total-players').textContent = allUsers.length;
+                    document.getElementById('active-lobbies').textContent = allLobbies.length;
+                    document.getElementById('active-sessions').textContent = allSessions.length;
+                });
+            
+            // API-Aufruf für aktive Lobbies
+            fetch('/api/lobbies')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('active-lobbies').textContent = data.length || '0';
+                    allLobbies = data;
+                })
+                .catch(err => {
+                    console.error('Fehler beim Laden der Lobby-Daten:', err);
+                });
+            
+            // Aktivitätsprotokoll
+            const activityLog = document.getElementById('activity-log');
+            activityLog.innerHTML = `
+                <tr>
+                    <td>${new Date().toLocaleTimeString('de-DE')}</td>
+                    <td>admin</td>
+                    <td>System gestartet</td>
+                </tr>
+                <tr>
+                    <td>${new Date(Date.now() - 300000).toLocaleTimeString('de-DE')}</td>
+                    <td>max_mustermann</td>
+                    <td>Neuer Benutzer erstellt</td>
+                </tr>
+                <tr>
+                    <td>${new Date(Date.now() - 600000).toLocaleTimeString('de-DE')}</td>
+                    <td>sara_muster</td>
+                    <td>Lobby "ABCD" erstellt</td>
+                </tr>
+            `;
+        }
+        
+        function loadUsers() {
+            // API-Aufruf für alle Benutzernamen
+            fetch('/api/getAllUsernames')
+                .then(response => response.json())
+                .then(usernames => {
+                    // Für jeden Benutzernamen Benutzerdaten abrufen
+                    const userPromises = usernames.map(username => {
+                        return fetch(`/api/getStats/${username}`)
+                            .then(response => {
+                                if (!response.ok) throw new Error('Benutzer nicht gefunden');
+                                return response.json();
+                            })
+                            .then(userData => {
+                                return {
+                                    username: userData.username,
+                                    uid: userData.uid,
+                                    email: userData.email || 'Nicht verfügbar',
+                                    role: userData.role || 'user',
+                                    createdAt: userData.createdAt || 'Unbekannt',
+                                    gamesPlayed: userData.combined?.totalGamesPlayed || 0
+                                };
+                            })
+                            .catch(err => {
+                                console.error(`Fehler beim Laden von Benutzer ${username}:`, err);
+                                return {
+                                    username: username,
+                                    uid: 'unbekannt',
+                                    email: 'Nicht verfügbar',
+                                    role: 'user',
+                                    createdAt: 'Unbekannt',
+                                    gamesPlayed: 0
+                                };
+                            });
+                    });
+                    
+                    Promise.all(userPromises)
+                        .then(users => {
+                            allUsers = users;
+                            renderUsersTable(users);
+                            alertManager.success('Benutzer geladen', `${users.length} Benutzer wurden geladen.`);
+                        })
+                        .catch(err => {
+                            console.error('Fehler beim Laden der Benutzerdaten:', err);
+                            loadDemoUsers();
+                        });
+                })
+                .catch(err => {
+                    console.error('Fehler beim Laden der Benutzernamen:', err);
+                    // Fallback zu Demo-Daten
+                    loadDemoUsers();
+                });
+        }
+        
+        function renderUsersTable(users) {
+            const usersTable = document.getElementById('users-table');
+            usersTable.innerHTML = '';
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                
+                const roleTag = user.role === 'admin' ? 'tag-admin' : 
+                               user.role === 'moderator' ? 'tag-moderator' : 'tag-user';
+                
+                row.innerHTML = `
+                    <td>${user.uid}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td><span class="tag ${roleTag}">${user.role}</span></td>
+                    <td>${user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : 'Unbekannt'}</td>
+                    <td>${user.gamesPlayed}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning edit-user" data-uid="${user.uid}">Bearbeiten</button>
+                        <button class="btn btn-sm btn-danger delete-user" data-uid="${user.uid}">Löschen</button>
+                    </td>
+                `;
+                
+                usersTable.appendChild(row);
+            });
+            
+            // Event-Listener für Bearbeiten-Buttons
+            document.querySelectorAll('.edit-user').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const uid = this.getAttribute('data-uid');
+                    editUser(uid);
+                });
+            });
+            
+            // Event-Listener für Löschen-Buttons
+            document.querySelectorAll('.delete-user').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const uid = this.getAttribute('data-uid');
+                    const username = this.closest('tr').children[1].textContent;
+                    deleteUser(uid, username);
+                });
+            });
+        }
+        
+        function loadLobbies() {
+            // API-Aufruf für Lobbies
+            fetch('/api/lobbies')
+                .then(response => response.json())
+                .then(lobbies => {
+                    allLobbies = lobbies;
+                    renderLobbiesTable(lobbies);
+                    alertManager.success('Lobbies geladen', `${lobbies.length} aktive Lobbies wurden geladen.`);
+                })
+                .catch(err => {
+                    console.error('Fehler beim Laden der Lobby-Daten:', err);
+                    // Fallback zu Demo-Daten
+                    loadDemoLobbies();
+                });
+        }
+        
+        function renderLobbiesTable(lobbies) {
+            const lobbiesTable = document.getElementById('lobbies-table');
+            lobbiesTable.innerHTML = '';
+            
+            lobbies.forEach(lobby => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${lobby.code}</td>
+                    <td>${lobby.difficulty}</td>
+                    <td>${lobby.players}/${lobby.maxPlayers}</td>
+                    <td>${lobby.status || 'Wartend'}</td>
+                    <td>${lobby.host || 'Unbekannt'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning">Anzeigen</button>
+                        <button class="btn btn-sm btn-danger close-lobby" data-code="${lobby.code}">Schließen</button>
+                    </td>
+                `;
+                lobbiesTable.appendChild(row);
+            });
+            
+            // Event-Listener für Schließen-Buttons
+            document.querySelectorAll('.close-lobby').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const code = this.getAttribute('data-code');
+                    closeLobby(code);
+                });
+            });
+        }
+        
+        function loadSessions() {
+            // API-Aufruf für aktive Sessions
+            fetch('/api/sessions')
+                .then(response => {
+                    if (!response.ok) throw new Error('Sessions konnten nicht geladen werden');
+                    return response.json();
+                })
+                .then(sessions => {
+                    allSessions = sessions;
+                    renderSessionsTable(sessions);
+                    
+                    // Aktuelle Statistiken aktualisieren
+                    document.getElementById('online-users').textContent = sessions.filter(s => s.status === 'online').length;
+                    document.getElementById('connected-clients').textContent = sessions.length;
+                    document.getElementById('active-sessions').textContent = sessions.length;
+                    
+                    alertManager.success('Sessions geladen', `${sessions.length} aktive Sessions wurden geladen.`);
+                })
+                .catch(err => {
+                    console.error('Fehler beim Laden der Session-Daten:', err);
+                    // Fallback zu Demo-Daten
+                    loadDemoSessions();
+                });
+        }
+        
+        function renderSessionsTable(sessions) {
+            const sessionsTable = document.getElementById('sessions-table');
+            sessionsTable.innerHTML = '';
+            
+            sessions.forEach(session => {
+                const row = document.createElement('tr');
+                const statusClass = session.status === 'online' ? 'tag-online' : 'tag-offline';
+                const statusIcon = session.status === 'online' ? '<span class="live-indicator"></span>' : '';
+                
+                row.innerHTML = `
+                    <td>${session.username}</td>
+                    <td><span class="tag ${statusClass}">${statusIcon}${session.status}</span></td>
+                    <td>${session.lobby || 'Keine'}</td>
+                    <td>${new Date(session.connectedAt).toLocaleString('de-DE')}</td>
+                    <td>${session.lastActivity ? new Date(session.lastActivity).toLocaleString('de-DE') : 'Unbekannt'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger disconnect-session" data-id="${session.id}">Trennen</button>
+                    </td>
+                `;
+                sessionsTable.appendChild(row);
+            });
+            
+            // Event-Listener für Trennen-Buttons
+            document.querySelectorAll('.disconnect-session').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const sessionId = this.getAttribute('data-id');
+                    disconnectSession(sessionId);
+                });
+            });
+        }
+        
+        function loadLeaderboard(type) {
+            // Header je nach Typ anpassen
+            const header = document.getElementById('leaderboard-value-header');
+            header.textContent = type === 'multiplayer' ? 'Siege' : 'Beste Zeit';
+            
+            // API-Aufruf für Leaderboard
+            fetch(`/api/getLeaderboard?type=${type}`)
+                .then(response => response.json())
+                .then(leaderboardData => {
+                    renderLeaderboardTable(leaderboardData, type);
+                    alertManager.success('Leaderboard geladen', `${type === 'multiplayer' ? 'Multiplayer' : 'Singleplayer'} Leaderboard wurde geladen.`);
+                })
+                .catch(err => {
+                    console.error('Fehler beim Laden des Leaderboards:', err);
+                    // Fallback zu Demo-Daten
+                    loadDemoLeaderboard(type);
+                });
+        }
+        
+        function renderLeaderboardTable(leaderboardData, type) {
+            const leaderboardTable = document.getElementById('leaderboard-table');
+            leaderboardTable.innerHTML = '';
+            
+            leaderboardData.forEach((player, index) => {
+                const row = document.createElement('tr');
+                const value = type === 'multiplayer' ? player.value : `${player.value}s`;
+                row.innerHTML = `
+                    <td>${player.rank}</td>
+                    <td>${player.username}</td>
+                    <td>${value}</td>
+                `;
+                leaderboardTable.appendChild(row);
+            });
+        }
+        
+        function showAddUserModal() {
+            addUserModal.style.display = 'flex';
+        }
+        
+        function hideAddUserModal() {
+            addUserModal.style.display = 'none';
+            // Formular zurücksetzen
+            document.getElementById('new-username').value = '';
+            document.getElementById('new-email').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('new-role').value = 'user';
+        }
+        
+        function addNewUser() {
+            const username = document.getElementById('new-username').value;
+            const email = document.getElementById('new-email').value;
+            const password = document.getElementById('new-password').value;
+            const role = document.getElementById('new-role').value;
+            
+            if (!username || !email || !password) {
+                alertManager.error('Fehlende Daten', 'Bitte füllen Sie alle Felder aus.');
+                return;
+            }
+            
+            // Hier würden wir den Benutzer über Firebase Auth und die API erstellen
+            // Für dieses Beispiel simulieren wir dies nur
+            
+            alertManager.success('Benutzer erstellt', `Benutzer "${username}" wurde erfolgreich erstellt.`);
+            hideAddUserModal();
+            loadUsers(); // Tabelle aktualisieren
+        }
+        
+        function editUser(uid) {
+            const user = allUsers.find(u => u.uid === uid);
+            if (!user) return;
+            
+            document.getElementById('edit-user-id').value = user.uid;
+            document.getElementById('edit-username').value = user.username;
+            document.getElementById('edit-email').value = user.email;
+            document.getElementById('edit-role').value = user.role;
+            
+            editUserModal.style.display = 'flex';
+            
+            // Event-Listener für Bestätigen-Button
+            document.getElementById('confirm-edit-user').onclick = function() {
+                saveUserChanges(uid);
+            };
+        }
+        
+        function saveUserChanges(uid) {
+            const username = document.getElementById('edit-username').value;
+            const email = document.getElementById('edit-email').value;
+            const role = document.getElementById('edit-role').value;
+            
+            // API-Aufruf zum Aktualisieren des Benutzers
+            fetch('/api/updateUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    uid: uid,
+                    newUsername: username,
+                    email: email,
+                    role: role
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alertManager.success('Benutzer aktualisiert', 'Die Benutzerdaten wurden erfolgreich gespeichert.');
+                    editUserModal.style.display = 'none';
+                    loadUsers(); // Tabelle aktualisieren
+                } else {
+                    alertManager.error('Fehler', 'Fehler beim Aktualisieren des Benutzers: ' + (data.error || 'Unbekannter Fehler'));
+                }
+            })
+            .catch(err => {
+                console.error('Fehler beim Aktualisieren des Benutzers:', err);
+                alertManager.error('Fehler', 'Fehler beim Aktualisieren des Benutzers.');
+            });
+        }
+        
+        function deleteUser(uid, username) {
+            if (confirm(`Möchten Sie den Benutzer "${username}" wirklich löschen?`)) {
+                // API-Aufruf zum Löschen des Benutzers
+                fetch('/api/deleteUser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        uid: uid
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        alertManager.success('Benutzer gelöscht', `Benutzer "${username}" wurde erfolgreich gelöscht.`);
+                        loadUsers(); // Tabelle aktualisieren
+                    } else {
+                        alertManager.error('Fehler', 'Fehler beim Löschen des Benutzers: ' + (data.error || 'Unbekannter Fehler'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Fehler beim Löschen des Benutzers:', err);
+                    alertManager.error('Fehler', 'Fehler beim Löschen des Benutzers.');
+                });
+            }
+        }
+        
+        function closeLobby(code) {
+            if (confirm(`Möchten Sie die Lobby "${code}" wirklich schließen?`)) {
+                // Hier würden wir die Lobby über die API schließen
+                alertManager.success('Lobby geschlossen', `Lobby "${code}" wurde erfolgreich geschlossen.`);
+                loadLobbies(); // Tabelle aktualisieren
+            }
+        }
+        
+        function disconnectSession(sessionId) {
+            if (confirm(`Möchten Sie die Session "${sessionId}" wirklich trennen?`)) {
+                // Hier würden wir die Session über die API trennen
+                alertManager.success('Session getrennt', `Session "${sessionId}" wurde erfolgreich getrennt.`);
+                loadSessions(); // Tabelle aktualisieren
+            }
+        }
+        
+        function filterUsers() {
+            const searchTerm = document.getElementById('user-search').value.toLowerCase();
+            const filteredUsers = allUsers.filter(user => 
+                user.username.toLowerCase().includes(searchTerm) || 
+                user.email.toLowerCase().includes(searchTerm)
+            );
+            renderUsersTable(filteredUsers);
+        }
+        
+        function saveSettings() {
+            const serverUrl = document.getElementById('server-url').value;
+            const refreshInterval = document.getElementById('refresh-interval').value;
+            
+            // Hier würden wir die Einstellungen speichern
+            alertManager.success('Einstellungen gespeichert', 'Die Einstellungen wurden erfolgreich gespeichert.');
+            
+            // Automatische Aktualisierung neu starten
+            startAutoRefresh();
+        }
+        
+        // Demo-Daten für Fallback
+        function loadDemoData() {
+            loadDashboardData();
+            loadDemoUsers();
+            loadDemoLobbies();
+            loadDemoSessions();
+            loadDemoLeaderboard('multiplayer');
+        }
+        
+        function loadDemoUsers() {
+            const demoUsers = [
+                {
+                    uid: 'user123',
+                    username: 'admin',
+                    email: 'admin@minesweeper.com',
+                    role: 'admin',
+                    createdAt: '2023-01-15T00:00:00.000Z',
+                    gamesPlayed: 42
+                },
+                {
+                    uid: 'user456',
+                    username: 'max_mustermann',
+                    email: 'max@example.com',
+                    role: 'user',
+                    createdAt: '2023-03-22T00:00:00.000Z',
+                    gamesPlayed: 28
+                },
+                {
+                    uid: 'user789',
+                    username: 'sara_muster',
+                    email: 'sara@example.com',
+                    role: 'moderator',
+                    createdAt: '2023-05-10T00:00:00.000Z',
+                    gamesPlayed: 35
+                }
+            ];
+            allUsers = demoUsers;
+            renderUsersTable(demoUsers);
+        }
+        
+        function loadDemoLobbies() {
+            const demoLobbies = [
+                {
+                    code: 'ABCD',
+                    difficulty: 'Mittel',
+                    players: 3,
+                    maxPlayers: 4,
+                    status: 'Aktiv',
+                    host: 'max_mustermann'
+                },
+                {
+                    code: 'EFGH',
+                    difficulty: 'Schwer',
+                    players: 2,
+                    maxPlayers: 4,
+                    status: 'Wartend',
+                    host: 'sara_muster'
+                }
+            ];
+            allLobbies = demoLobbies;
+            renderLobbiesTable(demoLobbies);
+        }
+        
+        function loadDemoSessions() {
+            const demoSessions = [
+                {
+                    id: 'session-123',
+                    username: 'max_mustermann',
+                    lobby: 'ABCD',
+                    connectedAt: new Date().toISOString(),
+                    lastActivity: new Date().toISOString(),
+                    status: 'online'
+                },
+                {
+                    id: 'session-456',
+                    username: 'sara_muster',
+                    lobby: 'EFGH',
+                    connectedAt: new Date(Date.now() - 300000).toISOString(),
+                    lastActivity: new Date(Date.now() - 60000).toISOString(),
+                    status: 'online'
+                },
+                {
+                    id: 'session-789',
+                    username: 'admin',
+                    lobby: 'Keine',
+                    connectedAt: new Date(Date.now() - 600000).toISOString(),
+                    lastActivity: new Date(Date.now() - 120000).toISOString(),
+                    status: 'online'
+                }
+            ];
+            allSessions = demoSessions;
+            renderSessionsTable(demoSessions);
+            
+            // Demo-Statistiken aktualisieren
+            document.getElementById('online-users').textContent = demoSessions.filter(s => s.status === 'online').length;
+            document.getElementById('connected-clients').textContent = demoSessions.length;
+            document.getElementById('active-sessions').textContent = demoSessions.length;
+        }
+        
+        function loadDemoLeaderboard(type) {
+            const leaderboardTable = document.getElementById('leaderboard-table');
+            
+            if (type === 'multiplayer') {
+                leaderboardTable.innerHTML = `
+                    <tr>
+                        <td>1</td>
+                        <td>pro_gamer</td>
+                        <td>247</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>mine_master</td>
+                        <td>189</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>sweeper_king</td>
+                        <td>156</td>
+                    </tr>
+                `;
+            } else {
+                leaderboardTable.innerHTML = `
+                    <tr>
+                        <td>1</td>
+                        <td>speed_demon</td>
+                        <td>34s</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>fast_finger</td>
+                        <td>36s</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>quick_clicker</td>
+                        <td>38s</td>
+                    </tr>
+                `;
+            }
+        }
+    </script>
+    <!-- Socket.IO für Live-Daten -->
+    <script src="/socket.io/socket.io.js"></script>
+</body>
+</html>

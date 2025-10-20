@@ -455,7 +455,7 @@ socket.on('createLobby', ({ difficulty, playerCount }) => {
     delete lobby.penalties[oldId];
   }
 
-if (lobby.paused) {
+  if (lobby.paused) {
   const pauseDuration = Date.now() - lobby.pauseStartTime;
   
   Object.values(lobby.gameState.playerStates).forEach(state => {
@@ -467,10 +467,15 @@ if (lobby.paused) {
   lobby.paused = false;
 }
 
-const penalty = RECONNECT_PENALTY;
-lobby.penalties[socket.id] = (lobby.penalties[socket.id] || 0) + penalty;
-lobby.gameState.playerStates[socket.id].penalty += penalty;
-
+// Only apply penalty if player is alive
+if (!playerState) return;  // Guard against undefined playerState
+const isPlayerDead = playerState.status === 'dead' || playerState.status === 'finished';
+// Calculate penalty only for alive players
+const reconnectPenalty = !isPlayerDead ? RECONNECT_PENALTY : 0;
+if (reconnectPenalty > 0) {
+    lobby.penalties[socket.id] = (lobby.penalties[socket.id] || 0) + reconnectPenalty;
+    lobby.gameState.playerStates[socket.id].penalty += reconnectPenalty;
+}
 
     lobby.users.forEach(user => {
       if (user.id === oldId) user.id = socket.id;
@@ -483,9 +488,9 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
     
     lobby.paused = false;
   io.to(lobby.code).emit('gameResumed', {
-  reconnectedPlayerId: socket.id,
-  penalty: penalty / 1000
-});
+    reconnectedPlayerId: socket.id,
+    penalty: reconnectPenalty / 1000
+  });
 
   });
 
@@ -499,18 +504,29 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
     const playerState = lobby.gameState.playerStates[socket.id];
     if (!playerState) return;
 
+    // Get the status of the reconnecting player
+    const isPlayerDead = playerState.status === 'dead' || playerState.status === 'finished';
+    
+    // Check if player was in a different lobby before
+    if (player.previousLobby && player.previousLobby !== player.lobby) {
+      socket.emit('error', { message: 'Cannot reconnect to a different lobby' });
+      return;
+    }
+
     socket.emit('reconnectGameData', {
-      grid: lobby.gameState.grid,
+      grid: isPlayerDead ? null : lobby.gameState.grid, 
       rows: lobby.gameState.rows,
       cols: lobby.gameState.cols,
       mines: lobby.gameState.mines,
-      revealedCells: playerState.revealedCells,
-      flags: playerState.flags,
+      revealedCells: isPlayerDead ? playerState.revealedCells : playerState.revealedCells,
+      flags: isPlayerDead ? playerState.flags : playerState.flags,
       users: lobby.users,
       startTime: playerState.startTime,
+      playerStates: lobby.gameState.playerStates,
       pausedDuration: playerState.pausedDuration,
-      penalty: playerState.penalty, 
-      isPaused: lobby.paused
+      penalty: isPlayerDead ? 0 : playerState.penalty, // No penalty if dead
+      isPaused: lobby.paused,
+      isDead: isPlayerDead
     });
 
     if (lobby.disconnectTimers[socket.id]) {
@@ -769,6 +785,9 @@ lobby.gameState.playerStates[socket.id].penalty += penalty;
     const player = playerSessions[socket.id];
     if (!player || !player.lobby) return;
     
+    // Store the lobby the player was in when they disconnected
+    player.previousLobby = player.lobby;
+    
     const lobby = lobbies[player.lobby];
     if (!lobby) return;
     
@@ -923,12 +942,14 @@ if (lobby.users.length === 0 && lobby.status !== 'playing') {
   }
 
   function updateProgress(lobby) {
+    if (!lobby || !lobby.gameState || !lobby.gameState.playerStates) return;
+
     const progressData = lobby.users.map(user => {
       const playerState = lobby.gameState.playerStates[user.id];
       return {
         id: user.id,
         name: user.name,
-        progress: playerState.progress
+        progress: playerState ? playerState.progress || 0 : 0
       };
     });
     

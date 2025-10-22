@@ -106,3 +106,5 @@
     9. Add that even when the lobby is full people can spectate and chat its like MINECRAFT!!!!!
     10. Add a Live Updating Journey (Changelog.MD) with pictures and so on!!
     11. Add a log file (everything is safed in log.json)
+    12. MAKE THE OVERLAY LIKE THE DISCORD OONE (admin)
+    13. Bann the whole account (or just chat bann)
